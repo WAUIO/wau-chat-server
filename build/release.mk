@@ -3,7 +3,7 @@ dist: | check-style test package
 
 build-linux:
 	@echo Build Linux amd64
-	env GOOS=linux GOARCH=amd64 $(GO) install -i $(GOFLAGS) $(GO_LINKER_FLAGS) ./...
+	env GOOS=linux GOARCH=amd64 $(GO) install $(GOFLAGS) $(GO_LINKER_FLAGS) ./...
 
 build-osx: 
 	@echo Build OSX amd64
@@ -64,9 +64,9 @@ endif
 
 	@# Make osx package
 	@# Copy binary
-ifeq ($(BUILDER_GOOS_GOARCH),"darwin_amd64")
+ifeq ($(BUILDER_GOOS_GOARCH),"linux_amd64")
 	cp $(GOPATH)/bin/mattermost $(DIST_PATH)/bin # from native bin dir, not cross-compiled
-	cp $(GOPATH)/bin/platform $(DIST_PATH)/bin # from native bin dir, not cross-compiled
+	#cp $(GOPATH)/bin/platform $(DIST_PATH)/bin # from native bin dir, not cross-compiled
 	@for plugin_package in $(PLUGIN_PACKAGES) ; do \
     curl -s https://api.github.com/repos/mattermost/$$plugin_package/releases/latest | grep browser_download_url | grep darwin | cut -d '"' -f 4 | wget -qi - -P  $(DIST_PATH)/prepackaged_plugins/ ;\
 	done
@@ -81,7 +81,7 @@ endif
 	tar -C dist -czf $(DIST_PATH)-$(BUILD_TYPE_NAME)-osx-amd64.tar.gz mattermost
 	@# Cleanup
 	rm -f $(DIST_PATH)/bin/mattermost
-	rm -f $(DIST_PATH)/bin/platform
+	#rm -f $(DIST_PATH)/bin/platform
 	rm -f $(DIST_PATH)/prepackaged_plugins/*
 
 	@# Make windows package
