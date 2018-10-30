@@ -40,7 +40,6 @@ git clone https://github.com/WAUIO/mattermost-server.git
 ---
 ```sh
 mysql -u root -p
-mysql> ALTER USER "root"@"localhost" IDENTIFIED BY "mmuser-password";
 mysql> create user "mmuser"@"%" identified by "mmuser-password";
 mysql> create database mattermost;
 mysql> grant all privileges on mattermost.* to "mmuser"@"%";
