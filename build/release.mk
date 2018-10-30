@@ -3,6 +3,7 @@ dist: | check-style test package
 
 build-linux:
 	@echo Build Linux amd64
+	ln -nfs $(BUILD_WEBAPP_DIR)/dist client
 	env GOOS=linux GOARCH=amd64 $(GO) install $(GOFLAGS) $(GO_LINKER_FLAGS) ./...
 
 build-osx: 
