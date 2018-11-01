@@ -45,7 +45,7 @@ mysql> create database mattermost;
 mysql> grant all privileges on mattermost.* to "mmuser"@"%";
 mysql> exit
 ```
-- Then change this line in file config/config.json:120
+- Then create a config.json from default.json and change this line in file config/config.json:120
 ```js
 mmuser:mmuser-password@tcp(localhost:3306)/mattermost_test?charset=utf8mb4,utf8\u0026readTimeout=30s\u0026writeTimeout=30s
 ```
