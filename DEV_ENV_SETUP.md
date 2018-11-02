@@ -40,7 +40,6 @@ git clone https://github.com/WAUIO/mattermost-server.git
 ---
 ```sh
 mysql -u root -p
-mysql> ALTER USER "root"@"localhost" IDENTIFIED BY "mmuser-password";
 mysql> create user "mmuser"@"%" identified by "mmuser-password";
 mysql> create database mattermost;
 mysql> grant all privileges on mattermost.* to "mmuser"@"%";
@@ -48,7 +47,7 @@ mysql> exit
 ```
 - Then change this line in file config/config.json:120
 ```js
-mmuser:mmuser-password@tcp(localhost:3306)@tcp(dockerhost:3306)/mattermost_test?charset=utf8mb4,utf8\u0026readTimeout=30s\u0026writeTimeout=30s
+mmuser:mmuser-password@tcp(localhost:3306)/mattermost_test?charset=utf8mb4,utf8\u0026readTimeout=30s\u0026writeTimeout=30s
 ```
 
 ---
