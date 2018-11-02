@@ -1,6 +1,6 @@
 {
     "ServiceSettings": {
-        "SiteURL": "",
+        "SiteURL": "https://localhost",
         "WebsocketURL": "",
         "LicenseFileLocation": "",
         "ListenAddress": ":8065",
@@ -22,10 +22,9 @@
         "EnableOnlyAdminIntegrations": true,
         "EnablePostUsernameOverride": false,
         "EnablePostIconOverride": false,
-        "EnableAPIv3": false,
         "EnableLinkPreviews": false,
         "EnableTesting": false,
-        "EnableDeveloper": false,
+        "EnableDeveloper": true,
         "EnableSecurityFixAlert": true,
         "EnableInsecureOutgoingConnections": false,
         "AllowedUntrustedInternalConnections": "",
@@ -54,38 +53,38 @@
         "RestrictPostDelete": "all",
         "AllowEditPost": "always",
         "PostEditTimeLimit": -1,
-        "ExperimentalEnableAuthenticationTransfer": true,
         "TimeBetweenUserTypingUpdatesMilliseconds": 5000,
         "EnablePostSearch": true,
         "EnableUserTypingMessages": true,
         "EnableChannelViewedMessages": true,
         "EnableUserStatuses": true,
+        "ExperimentalEnableAuthenticationTransfer": true,
         "ClusterLogTimeoutMilliseconds": 2000,
-        "EnablePreviewFeatures": true,
         "CloseUnusedDirectMessages": false,
+        "EnablePreviewFeatures": true,
         "EnableTutorial": true,
         "ExperimentalEnableDefaultChannelLeaveJoinMessages": true,
         "ExperimentalGroupUnreadChannels": "disabled",
         "ExperimentalChannelOrganization": false,
         "ImageProxyType": "",
-        "ImageProxyOptions": "",
         "ImageProxyURL": "",
+        "ImageProxyOptions": "",
         "EnableAPITeamDeletion": false,
         "ExperimentalEnableHardenedMode": false,
         "ExperimentalLimitClientConfig": false,
-        "EnableEmailInvitations": false
+        "EnableEmailInvitations": true
     },
     "TeamSettings": {
-        "SiteName": "Mattermost",
+        "SiteName": "Silicon Chat",
         "MaxUsersPerTeam": 50,
         "EnableTeamCreation": true,
         "EnableUserCreation": true,
-        "EnableOpenServer": false,
+        "EnableOpenServer": true,
         "EnableUserDeactivation": false,
         "RestrictCreationToDomains": "",
-        "EnableCustomBrand": false,
+        "EnableCustomBrand": true,
         "CustomBrandText": "",
-        "CustomDescriptionText": "",
+        "CustomDescriptionText": "This is the brand new Silicon Chat",
         "RestrictDirectMessage": "any",
         "RestrictTeamInvite": "all",
         "RestrictPublicChannelManagement": "all",
@@ -106,11 +105,7 @@
         "ExperimentalHideTownSquareinLHS": false,
         "ExperimentalTownSquareIsReadOnly": false,
         "ExperimentalPrimaryTeam": "",
-        "ExperimentalDefaultChannels": ""
-    },
-    "DisplaySettings": {
-        "CustomUrlSchemes": [],
-        "ExperimentalTimezone": false
+        "ExperimentalDefaultChannels": []
     },
     "ClientRequirements": {
         "AndroidLatestVersion": "",
@@ -122,14 +117,14 @@
     },
     "SqlSettings": {
         "DriverName": "mysql",
-        "DataSource": "mmuser:mostest@tcp(dockerhost:3306)/mattermost_test?charset=utf8mb4,utf8&readTimeout=30s&writeTimeout=30s",
+        "DataSource": "root:root@tcp(localhost:3306)/mattermost_test?charset=utf8mb4,utf8\u0026readTimeout=30s\u0026writeTimeout=30s",
         "DataSourceReplicas": [],
         "DataSourceSearchReplicas": [],
         "MaxIdleConns": 20,
         "ConnMaxLifetimeMilliseconds": 3600000,
         "MaxOpenConns": 300,
         "Trace": false,
-        "AtRestEncryptKey": "",
+        "AtRestEncryptKey": "f3ti1qt41ecx6nu4zyktk7hpz33gcra4",
         "QueryTimeout": 30
     },
     "LogSettings": {
@@ -158,7 +153,7 @@
         "DriverName": "local",
         "Directory": "./data/",
         "EnablePublicLink": false,
-        "PublicLinkSalt": "",
+        "PublicLinkSalt": "ihqxqtxyt5ft6wnzo51dioeehb7xz4xo",
         "InitialFont": "nunito-bold.ttf",
         "AmazonS3AccessKeyId": "",
         "AmazonS3SecretAccessKey": "",
@@ -186,7 +181,7 @@
         "SMTPServer": "dockerhost",
         "SMTPPort": "2500",
         "ConnectionSecurity": "",
-        "InviteSalt": "",
+        "InviteSalt": "4x5hofwyarrah9ffb8mbo8ea5mrbfazd",
         "SendPushNotifications": false,
         "PushNotificationServer": "",
         "PushNotificationContents": "generic",
@@ -218,12 +213,12 @@
         "ShowFullName": true
     },
     "SupportSettings": {
-        "TermsOfServiceLink": "https://about.mattermost.com/default-terms/",
-        "PrivacyPolicyLink": "https://about.mattermost.com/default-privacy-policy/",
-        "AboutLink": "https://about.mattermost.com/default-about/",
-        "HelpLink": "https://about.mattermost.com/default-help/",
-        "ReportAProblemLink": "https://about.mattermost.com/default-report-a-problem/",
-        "SupportEmail": "feedback@mattermost.com"
+        "TermsOfServiceLink": "https://about.silicon.com/default-terms/",
+        "PrivacyPolicyLink": "https://about.silicon.com/default-privacy-policy/",
+        "AboutLink": "https://about.silicon.com/default-about/",
+        "HelpLink": "https://about.silicon.com/default-help/",
+        "ReportAProblemLink": "https://about.silicon.com/default-report-a-problem/",
+        "SupportEmail": "feedback@silicon.com"
     },
     "AnnouncementSettings": {
         "EnableBanner": false,
@@ -233,13 +228,12 @@
         "AllowBannerDismissal": true
     },
     "ThemeSettings": {
-        "EnableThemeSelection": true,
-        "DefaultTheme": "default",
-        "AllowCustomThemes": true,
-        "AllowedThemes": []
-    },
-    "TimezoneSettings": {
-        "SupportedTimezonesPath": "timezones.json"
+        "EnableThemeSelection": false,
+        "DefaultTheme": "wau",
+        "AllowCustomThemes": false,
+        "AllowedThemes": [
+            "wau"
+        ]
     },
     "GitLabSettings": {
         "Enable": false,
@@ -333,9 +327,9 @@
         "LoginButtonTextColor": ""
     },
     "NativeAppSettings": {
-        "AppDownloadLink": "https://about.mattermost.com/downloads/",
-        "AndroidAppDownloadLink": "https://about.mattermost.com/mattermost-android-app/",
-        "IosAppDownloadLink": "https://about.mattermost.com/mattermost-ios-app/"
+        "AppDownloadLink": "https://about.silicon.com/downloads/",
+        "AndroidAppDownloadLink": "https://about.silicon.com/silicon-android-app/",
+        "IosAppDownloadLink": "https://about.silicon.com/silicon-ios-app/"
     },
     "ClusterSettings": {
         "Enable": false,
@@ -397,9 +391,9 @@
     },
     "MessageExportSettings": {
         "EnableExport": false,
+        "ExportFormat": "actiance",
         "DailyRunTime": "01:00",
         "ExportFromTimestamp": 0,
-        "FileLocation": "export",
         "BatchSize": 10000,
         "GlobalRelaySettings": {
             "CustomerType": "A9",
@@ -419,5 +413,12 @@
         "ClientDirectory": "./client/plugins",
         "Plugins": {},
         "PluginStates": {}
+    },
+    "DisplaySettings": {
+        "CustomUrlSchemes": [],
+        "ExperimentalTimezone": false
+    },
+    "TimezoneSettings": {
+        "SupportedTimezonesPath": "timezones.json"
     }
 }
