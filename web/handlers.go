@@ -77,8 +77,9 @@ func (h Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	if h.IsStatic {
 		// Instruct the browser not to display us in an iframe unless is the same origin for anti-clickjacking
-		w.Header().Set("X-Frame-Options", "SAMEORIGIN")
-		w.Header().Set("Content-Security-Policy", "frame-ancestors 'self'")
+		//@WAU!! The server is not secure without this. Activate it when necessary
+		// w.Header().Set("X-Frame-Options", "SAMEORIGIN")
+		// w.Header().Set("Content-Security-Policy", "frame-ancestors '*'")
 	} else {
 		// All api response bodies will be JSON formatted by default
 		w.Header().Set("Content-Type", "application/json")
