@@ -33,6 +33,7 @@ type AuthorizeRequest struct {
 	RedirectUri  string `json:"redirect_uri"`
 	Scope        string `json:"scope"`
 	State        string `json:"state"`
+	UserId       string `json:"user_id"`
 }
 
 // IsValid validates the AuthData and returns an error if it isn't configured

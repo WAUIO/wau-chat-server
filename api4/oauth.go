@@ -330,6 +330,11 @@ func authorizeOAuthPage(c *Context, w http.ResponseWriter, r *http.Request) {
 		RedirectUri:  r.URL.Query().Get("redirect_uri"),
 		Scope:        r.URL.Query().Get("scope"),
 		State:        r.URL.Query().Get("state"),
+
+		// this piece of data is from WAU Portal SSO, it is the user item_id
+		// will be recognized only if the OAuth application is set to Trusted
+		// otherwise, this will not be part of callback query if there is a POST /oauth/authorize request before
+		UserId:       r.URL.Query().Get("user_id"),
 	}
 
 	loginHint := r.URL.Query().Get("login_hint")
@@ -381,8 +386,12 @@ func authorizeOAuthPage(c *Context, w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// @WAU!!! we need to be whitelisted
+	// according to this https://stackoverflow.com/questions/10205192/x-frame-options-allow-from-multiple-domains
+	// we set only Content-Security-Policy and keep X-Frame-Options as it is
 	w.Header().Set("X-Frame-Options", "SAMEORIGIN")
-	w.Header().Set("Content-Security-Policy", "frame-ancestors 'self'")
+	// w.Header().Set("Content-Security-Policy", "frame-ancestors 'self'")
+	w.Header().Set("Content-Security-Policy", "frame-ancestors 'self' *.wau.solutions *.wau.co")
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	w.Header().Set("Cache-Control", "no-cache, max-age=31556926, public")
 

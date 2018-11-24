@@ -133,7 +133,13 @@ func (a *App) GetOAuthCodeRedirect(userId string, authRequest *model.AuthorizeRe
 		return authRequest.RedirectUri + "?error=server_error&state=" + authRequest.State, nil
 	}
 
-	return authRequest.RedirectUri + "?code=" + url.QueryEscape(authData.Code) + "&state=" + url.QueryEscape(authData.State), nil
+	finalUri := authRequest.RedirectUri + "?code=" + url.QueryEscape(authData.Code) + "&state=" + url.QueryEscape(authData.State)
+
+	if authRequest.UserId != "" {
+		finalUri += "&user_id=" + authRequest.UserId
+	}
+
+	return finalUri, nil
 }
 
 func (a *App) AllowOAuthAppAccessToUser(userId string, authRequest *model.AuthorizeRequest) (string, *model.AppError) {
