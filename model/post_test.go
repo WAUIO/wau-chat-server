@@ -25,34 +25,6 @@ func TestPostFromJsonError(t *testing.T) {
 	assert.Nil(t, ro)
 }
 
-func TestPostActionIntegrationRequestToJson(t *testing.T) {
-	o := PostActionIntegrationRequest{UserId: NewId(), Context: StringInterface{"a": "abc"}}
-	j := o.ToJson()
-	ro := PostActionIntegrationRequesteFromJson(strings.NewReader(j))
-
-	assert.NotNil(t, ro)
-	assert.Equal(t, o, *ro)
-}
-
-func TestPostActionIntegrationRequestFromJsonError(t *testing.T) {
-	ro := PostActionIntegrationRequesteFromJson(strings.NewReader(""))
-	assert.Nil(t, ro)
-}
-
-func TestPostActionIntegrationResponseToJson(t *testing.T) {
-	o := PostActionIntegrationResponse{Update: &Post{Id: NewId(), Message: NewId()}, EphemeralText: NewId()}
-	j := o.ToJson()
-	ro := PostActionIntegrationResponseFromJson(strings.NewReader(j))
-
-	assert.NotNil(t, ro)
-	assert.Equal(t, o, *ro)
-}
-
-func TestPostActionIntegrationResponseFromJsonError(t *testing.T) {
-	ro := PostActionIntegrationResponseFromJson(strings.NewReader(""))
-	assert.Nil(t, ro)
-}
-
 func TestPostIsValid(t *testing.T) {
 	o := Post{}
 	maxPostSize := 10000
@@ -205,6 +177,231 @@ func TestPostSanitizeProps(t *testing.T) {
 
 	if post3.Props["attachments"] == nil {
 		t.Fatal("should not be nil")
+	}
+}
+
+func TestPost_AttachmentsEqual(t *testing.T) {
+	post1 := &Post{}
+	post2 := &Post{}
+	for name, tc := range map[string]struct {
+		Attachments1 []*SlackAttachment
+		Attachments2 []*SlackAttachment
+		Expected     bool
+	}{
+		"Empty": {
+			nil,
+			nil,
+			true,
+		},
+		"DifferentLength": {
+			[]*SlackAttachment{
+				{
+					Text: "Hello World",
+				},
+			},
+			nil,
+			false,
+		},
+		"EqualText": {
+			[]*SlackAttachment{
+				{
+					Text: "Hello World",
+				},
+			},
+			[]*SlackAttachment{
+				{
+					Text: "Hello World",
+				},
+			},
+			true,
+		},
+		"DifferentText": {
+			[]*SlackAttachment{
+				{
+					Text: "Hello World",
+				},
+			},
+			[]*SlackAttachment{
+				{
+					Text: "Hello World 2",
+				},
+			},
+			false,
+		},
+		"DifferentColor": {
+			[]*SlackAttachment{
+				{
+					Text:  "Hello World",
+					Color: "#152313",
+				},
+			},
+			[]*SlackAttachment{
+				{
+					Text: "Hello World 2",
+				},
+			},
+			false,
+		},
+		"EqualFields": {
+			[]*SlackAttachment{
+				{
+					Fields: []*SlackAttachmentField{
+						{
+							Title: "Hello World",
+							Value: "FooBar",
+						},
+						{
+							Title: "Hello World2",
+							Value: "FooBar2",
+						},
+					},
+				},
+			},
+			[]*SlackAttachment{
+				{
+					Fields: []*SlackAttachmentField{
+						{
+							Title: "Hello World",
+							Value: "FooBar",
+						},
+						{
+							Title: "Hello World2",
+							Value: "FooBar2",
+						},
+					},
+				},
+			},
+			true,
+		},
+		"DifferentFields": {
+			[]*SlackAttachment{
+				{
+					Fields: []*SlackAttachmentField{
+						{
+							Title: "Hello World",
+							Value: "FooBar",
+						},
+					},
+				},
+			},
+			[]*SlackAttachment{
+				{
+					Fields: []*SlackAttachmentField{
+						{
+							Title: "Hello World",
+							Value: "FooBar",
+							Short: false,
+						},
+						{
+							Title: "Hello World2",
+							Value: "FooBar2",
+							Short: true,
+						},
+					},
+				},
+			},
+			false,
+		},
+		"EqualActions": {
+			[]*SlackAttachment{
+				{
+					Actions: []*PostAction{
+						{
+							Name: "FooBar",
+							Options: []*PostActionOptions{
+								{
+									Text:  "abcdef",
+									Value: "abcdef",
+								},
+							},
+							Integration: &PostActionIntegration{
+								URL: "http://localhost",
+								Context: map[string]interface{}{
+									"context": "foobar",
+									"test":    123,
+								},
+							},
+						},
+					},
+				},
+			},
+			[]*SlackAttachment{
+				{
+					Actions: []*PostAction{
+						{
+							Name: "FooBar",
+							Options: []*PostActionOptions{
+								{
+									Text:  "abcdef",
+									Value: "abcdef",
+								},
+							},
+							Integration: &PostActionIntegration{
+								URL: "http://localhost",
+								Context: map[string]interface{}{
+									"context": "foobar",
+									"test":    123,
+								},
+							},
+						},
+					},
+				},
+			},
+			true,
+		},
+		"DifferentActions": {
+			[]*SlackAttachment{
+				{
+					Actions: []*PostAction{
+						{
+							Name: "FooBar",
+							Options: []*PostActionOptions{
+								{
+									Text:  "abcdef",
+									Value: "abcdef",
+								},
+							},
+							Integration: &PostActionIntegration{
+								URL: "http://localhost",
+								Context: map[string]interface{}{
+									"context": "foobar",
+									"test":    "mattermost",
+								},
+							},
+						},
+					},
+				},
+			},
+			[]*SlackAttachment{
+				{
+					Actions: []*PostAction{
+						{
+							Name: "FooBar",
+							Options: []*PostActionOptions{
+								{
+									Text:  "abcdef",
+									Value: "abcdef",
+								},
+							},
+							Integration: &PostActionIntegration{
+								URL: "http://localhost",
+								Context: map[string]interface{}{
+									"context": "foobar",
+									"test":    123,
+								},
+							},
+						},
+					},
+				},
+			},
+			false,
+		},
+	} {
+		t.Run(name, func(t *testing.T) {
+			post1.AddProp("attachments", tc.Attachments1)
+			post2.AddProp("attachments", tc.Attachments2)
+			assert.Equal(t, tc.Expected, post1.AttachmentsEqual(post2))
+		})
 	}
 }
 

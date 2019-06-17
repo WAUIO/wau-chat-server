@@ -7,9 +7,14 @@
         "ConnectionSecurity": "",
         "TLSCertFile": "",
         "TLSKeyFile": "",
+        "TLSMinVer": "1.2",
+        "TLSStrictTransport": false,
+        "TLSStrictTransportMaxAge": 63072000,
+        "TLSOverwriteCiphers": [],
         "UseLetsEncrypt": false,
         "LetsEncryptCertificateCacheFile": "./config/letsencrypt.cache",
         "Forward80To443": false,
+        "TrustedProxyIPHeader": [],
         "ReadTimeout": 300,
         "WriteTimeout": 300,
         "MaximumLoginAttempts": 10,
@@ -37,11 +42,11 @@
         "CorsAllowCredentials": false,
         "CorsDebug": false,
         "AllowCookiesForSubdomains": false,
-        "SessionLengthWebInDays": 30,
-        "SessionLengthMobileInDays": 30,
+        "SessionLengthWebInDays": 180,
+        "SessionLengthMobileInDays": 180,
         "SessionLengthSSOInDays": 30,
         "SessionCacheInMinutes": 10,
-        "SessionIdleTimeoutInMinutes": 0,
+        "SessionIdleTimeoutInMinutes": 43200,
         "WebsocketSecurePort": 443,
         "WebsocketPort": 80,
         "WebserverMode": "gzip",
@@ -57,6 +62,7 @@
         "ExperimentalEnableAuthenticationTransfer": true,
         "TimeBetweenUserTypingUpdatesMilliseconds": 5000,
         "EnablePostSearch": true,
+        "MinimumHashtagLength": 3,
         "EnableUserTypingMessages": true,
         "EnableChannelViewedMessages": true,
         "EnableUserStatuses": true,
@@ -67,13 +73,14 @@
         "ExperimentalEnableDefaultChannelLeaveJoinMessages": true,
         "ExperimentalGroupUnreadChannels": "disabled",
         "ExperimentalChannelOrganization": false,
-        "ImageProxyType": "",
-        "ImageProxyOptions": "",
-        "ImageProxyURL": "",
         "EnableAPITeamDeletion": false,
         "ExperimentalEnableHardenedMode": false,
-        "ExperimentalLimitClientConfig": false,
-        "EnableEmailInvitations": false
+        "DisableLegacyMFA": true,
+        "EnableEmailInvitations": false,
+        "ExperimentalLdapGroupSync": false,
+        "ExperimentalStrictCSRFEnforcement": false,
+        "EnableBotAccountCreation": false,
+        "DisableBotsWhenOwnerIsDeactivated": true
     },
     "TeamSettings": {
         "SiteName": "Mattermost",
@@ -143,6 +150,15 @@
         "EnableWebhookDebugging": true,
         "EnableDiagnostics": true
     },
+    "NotificationLogSettings": {
+        "EnableConsole": true,
+        "ConsoleLevel": "DEBUG",
+        "ConsoleJson": true,
+        "EnableFile": true,
+        "FileLevel": "INFO",
+        "FileJson": true,
+        "FileLocation": ""
+    },
     "PasswordSettings": {
         "MinimumLength": 5,
         "Lowercase": false,
@@ -179,6 +195,7 @@
         "RequireEmailVerification": false,
         "FeedbackName": "",
         "FeedbackEmail": "test@example.com",
+        "ReplyToAddress": "test@example.com",
         "FeedbackOrganization": "",
         "EnableSMTPAuth": false,
         "SMTPUsername": "",
@@ -186,9 +203,8 @@
         "SMTPServer": "dockerhost",
         "SMTPPort": "2500",
         "ConnectionSecurity": "",
-        "InviteSalt": "",
-        "SendPushNotifications": false,
-        "PushNotificationServer": "",
+        "SendPushNotifications": true,
+        "PushNotificationServer": "https://push-test.mattermost.com",
         "PushNotificationContents": "generic",
         "EnableEmailBatching": false,
         "EmailBatchingBufferSize": 256,
@@ -196,13 +212,9 @@
         "EnablePreviewModeBanner": true,
         "SkipServerCertificateVerification": false,
         "EmailNotificationContentsType": "full",
-        "LoginButtonColor": "",
-        "LoginButtonBorderColor": "",
-        "LoginButtonTextColor": ""
-    },
-    "ExtensionSettings": {
-        "EnableExperimentalExtensions": false,
-        "AllowedExtensionsIDs": []
+        "LoginButtonColor": "#0000",
+        "LoginButtonBorderColor": "#2389D7",
+        "LoginButtonTextColor": "#2389D7"
     },
     "RateLimitSettings": {
         "Enable": false,
@@ -237,9 +249,6 @@
         "DefaultTheme": "default",
         "AllowCustomThemes": true,
         "AllowedThemes": []
-    },
-    "TimezoneSettings": {
-        "SupportedTimezonesPath": "timezones.json"
     },
     "GitLabSettings": {
         "Enable": false,
@@ -278,6 +287,9 @@
         "BindUsername": "",
         "BindPassword": "",
         "UserFilter": "",
+        "GroupFilter": "",
+        "GroupDisplayNameAttribute": "",
+        "GroupIdAttribute": "",
         "FirstNameAttribute": "",
         "LastNameAttribute": "",
         "EmailAttribute": "",
@@ -327,7 +339,7 @@
         "NicknameAttribute": "",
         "LocaleAttribute": "",
         "PositionAttribute": "",
-        "LoginButtonText": "With SAML",
+        "LoginButtonText": "SAML",
         "LoginButtonColor": "",
         "LoginButtonBorderColor": "",
         "LoginButtonTextColor": ""
@@ -357,20 +369,14 @@
     },
     "ExperimentalSettings": {
         "ClientSideCertEnable": false,
-        "ClientSideCertCheck": "secondary"
+        "ClientSideCertCheck": "secondary",
+        "DisablePostMetadata": false,
+        "LinkMetadataTimeoutMilliseconds": 5000,
+        "RestrictSystemAdmin": false,
+        "EnableClickToReply": false
     },
     "AnalyticsSettings": {
         "MaxUsersForStatistics": 2500
-    },
-    "WebrtcSettings": {
-        "Enable": false,
-        "GatewayWebsocketUrl": "",
-        "GatewayAdminUrl": "",
-        "GatewayAdminSecret": "",
-        "StunURI": "",
-        "TurnURI": "",
-        "TurnUsername": "",
-        "TurnSharedKey": ""
     },
     "ElasticsearchSettings": {
         "ConnectionUrl": "http://dockerhost:9200",
@@ -378,9 +384,14 @@
         "Password": "changeme",
         "EnableIndexing": false,
         "EnableSearching": false,
+        "EnableAutocomplete": false,
         "Sniff": true,
         "PostIndexReplicas": 1,
         "PostIndexShards": 1,
+        "ChannelIndexReplicas": 1,
+        "ChannelIndexShards": 1,
+        "UserIndexReplicas": 1,
+        "UserIndexShards": 1,
         "AggregatePostsAfterDays": 365,
         "PostsAggregatorJobStartTime": "03:00",
         "IndexPrefix": "",
@@ -415,9 +426,16 @@
     "PluginSettings": {
         "Enable": true,
         "EnableUploads": false,
+        "EnableHealthCheck": true,
         "Directory": "./plugins",
         "ClientDirectory": "./client/plugins",
         "Plugins": {},
         "PluginStates": {}
+    },
+    "ImageProxySettings": {
+        "Enable": false,
+        "ImageProxyType": "local",
+        "RemoteImageProxyURL": "",
+        "RemoteImageProxyOptions": ""
     }
 }

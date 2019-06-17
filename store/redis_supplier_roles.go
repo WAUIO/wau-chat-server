@@ -14,9 +14,11 @@ import (
 func (s *RedisSupplier) RoleSave(ctx context.Context, role *model.Role, hints ...LayeredStoreHint) *LayeredStoreSupplierResult {
 	key := buildRedisKeyForRoleName(role.Name)
 
-	if err := s.client.Del(key).Err(); err != nil {
-		mlog.Error("Redis failed to remove key " + key + " Error: " + err.Error())
-	}
+	defer func() {
+		if err := s.client.Del(key).Err(); err != nil {
+			mlog.Error("Redis failed to remove key " + key + " Error: " + err.Error())
+		}
+	}()
 
 	return s.Next().RoleSave(ctx, role, hints...)
 }
@@ -25,6 +27,12 @@ func (s *RedisSupplier) RoleGet(ctx context.Context, roleId string, hints ...Lay
 	// Roles are cached by name, as that is most commonly how they are looked up.
 	// This means that no caching is supported on roles being looked up by ID.
 	return s.Next().RoleGet(ctx, roleId, hints...)
+}
+
+func (s *RedisSupplier) RoleGetAll(ctx context.Context, hints ...LayeredStoreHint) *LayeredStoreSupplierResult {
+	// Roles are cached by name, as that is most commonly how they are looked up.
+	// This means that no caching is supported on roles being listed.
+	return s.Next().RoleGetAll(ctx, hints...)
 }
 
 func (s *RedisSupplier) RoleGetByName(ctx context.Context, name string, hints ...LayeredStoreHint) *LayeredStoreSupplierResult {
@@ -87,15 +95,17 @@ func (s *RedisSupplier) RoleDelete(ctx context.Context, roleId string, hints ...
 	result := s.Next().RoleGet(ctx, roleId, hints...)
 
 	if result.Err == nil {
-		role := result.Data.(*model.Role)
-		key := buildRedisKeyForRoleName(role.Name)
+		defer func() {
+			role := result.Data.(*model.Role)
+			key := buildRedisKeyForRoleName(role.Name)
 
-		if err := s.client.Del(key).Err(); err != nil {
-			mlog.Error("Redis failed to remove key " + key + " Error: " + err.Error())
-		}
+			if err := s.client.Del(key).Err(); err != nil {
+				mlog.Error("Redis failed to remove key " + key + " Error: " + err.Error())
+			}
+		}()
 	}
 
-	return result
+	return s.Next().RoleDelete(ctx, roleId, hints...)
 }
 
 func (s *RedisSupplier) RolePermanentDeleteAll(ctx context.Context, hints ...LayeredStoreHint) *LayeredStoreSupplierResult {

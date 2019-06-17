@@ -10,34 +10,34 @@ import (
 )
 
 func (a *App) GetPreferencesForUser(userId string) (model.Preferences, *model.AppError) {
-	if result := <-a.Srv.Store.Preference().GetAll(userId); result.Err != nil {
+	result := <-a.Srv.Store.Preference().GetAll(userId)
+	if result.Err != nil {
 		result.Err.StatusCode = http.StatusBadRequest
 		return nil, result.Err
-	} else {
-		return result.Data.(model.Preferences), nil
 	}
+	return result.Data.(model.Preferences), nil
 }
 
 func (a *App) GetPreferenceByCategoryForUser(userId string, category string) (model.Preferences, *model.AppError) {
-	if result := <-a.Srv.Store.Preference().GetCategory(userId, category); result.Err != nil {
-		result.Err.StatusCode = http.StatusBadRequest
-		return nil, result.Err
-	} else if len(result.Data.(model.Preferences)) == 0 {
+	preferences, err := a.Srv.Store.Preference().GetCategory(userId, category)
+	if err != nil {
+		err.StatusCode = http.StatusBadRequest
+		return nil, err
+	}
+	if len(preferences) == 0 {
 		err := model.NewAppError("getPreferenceCategory", "api.preference.preferences_category.get.app_error", nil, "", http.StatusNotFound)
 		return nil, err
-	} else {
-		return result.Data.(model.Preferences), nil
 	}
+	return preferences, nil
 }
 
 func (a *App) GetPreferenceByCategoryAndNameForUser(userId string, category string, preferenceName string) (*model.Preference, *model.AppError) {
-	if result := <-a.Srv.Store.Preference().Get(userId, category, preferenceName); result.Err != nil {
-		result.Err.StatusCode = http.StatusBadRequest
-		return nil, result.Err
-	} else {
-		data := result.Data.(model.Preference)
-		return &data, nil
+	res, err := a.Srv.Store.Preference().Get(userId, category, preferenceName)
+	if err != nil {
+		err.StatusCode = http.StatusBadRequest
+		return nil, err
 	}
+	return res, nil
 }
 
 func (a *App) UpdatePreferences(userId string, preferences model.Preferences) *model.AppError {
