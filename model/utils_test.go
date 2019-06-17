@@ -6,6 +6,7 @@ package model
 import (
 	"fmt"
 	"net/http"
+	"reflect"
 	"strings"
 	"testing"
 	"time"
@@ -43,25 +44,26 @@ func TestGetMillisForTime(t *testing.T) {
 	}
 }
 
-func TestParseDateFilterToTimeISO8601(t *testing.T) {
-	testString := "2016-08-01"
-	compareTime := time.Date(2016, time.August, 1, 0, 0, 0, 0, time.UTC)
-
-	result := ParseDateFilterToTime(testString)
-
-	if result != compareTime {
-		t.Fatalf(fmt.Sprintf("parsed date doesn't match the expected result: parsed result %v and expected time %v", result, compareTime))
-	}
-}
-
-func TestParseDateFilterToTimeNeedZeroPadding(t *testing.T) {
-	testString := "2016-8-1"
-	compareTime := time.Date(2016, time.August, 1, 0, 0, 0, 0, time.UTC)
-
-	result := ParseDateFilterToTime(testString)
-
-	if result != compareTime {
-		t.Fatalf(fmt.Sprintf("parsed date doesn't match the expected result: parsed result %v and expected time %v", result, compareTime))
+func TestPadDateStringZeros(t *testing.T) {
+	for _, testCase := range []struct {
+		Name     string
+		Input    string
+		Expected string
+	}{
+		{
+			Name:     "Valid date",
+			Input:    "2016-08-01",
+			Expected: "2016-08-01",
+		},
+		{
+			Name:     "Valid date but requires padding of zero",
+			Input:    "2016-8-1",
+			Expected: "2016-08-01",
+		},
+	} {
+		t.Run(testCase.Name, func(t *testing.T) {
+			assert.Equal(t, testCase.Expected, PadDateStringZeros(testCase.Input))
+		})
 	}
 }
 
@@ -246,6 +248,49 @@ var hashtags = map[string]string{
 	"#a":              "",
 	"#1":              "",
 	"foo#bar":         "",
+}
+
+func TestStringArray_Equal(t *testing.T) {
+	for name, tc := range map[string]struct {
+		Array1   StringArray
+		Array2   StringArray
+		Expected bool
+	}{
+		"Empty": {
+			nil,
+			nil,
+			true,
+		},
+		"EqualLength_EqualValue": {
+			StringArray{"123"},
+			StringArray{"123"},
+			true,
+		},
+		"DifferentLength": {
+			StringArray{"123"},
+			StringArray{"123", "abc"},
+			false,
+		},
+		"DifferentValues_EqualLength": {
+			StringArray{"123"},
+			StringArray{"abc"},
+			false,
+		},
+		"EqualLength_EqualValues": {
+			StringArray{"123", "abc"},
+			StringArray{"123", "abc"},
+			true,
+		},
+		"EqualLength_EqualValues_DifferentOrder": {
+			StringArray{"abc", "123"},
+			StringArray{"123", "abc"},
+			false,
+		},
+	} {
+		t.Run(name, func(t *testing.T) {
+			assert.Equal(t, tc.Expected, tc.Array1.Equals(tc.Array2))
+		})
+	}
 }
 
 func TestParseHashtags(t *testing.T) {
@@ -663,5 +708,62 @@ func TestNowhereNil(t *testing.T) {
 			t.Parallel()
 			require.Equal(t, testCase.Expected, checkNowhereNil(t, "value", testCase.Value))
 		})
+	}
+}
+
+// checkNowhereNil checks that the given interface value is not nil, and if a struct, that all of
+// its public fields are also nowhere nil
+func checkNowhereNil(t *testing.T, name string, value interface{}) bool {
+	if value == nil {
+		return false
+	}
+
+	v := reflect.ValueOf(value)
+	switch v.Type().Kind() {
+	case reflect.Ptr:
+		if v.IsNil() {
+			t.Logf("%s was nil", name)
+			return false
+		}
+
+		return checkNowhereNil(t, fmt.Sprintf("(*%s)", name), v.Elem().Interface())
+
+	case reflect.Map:
+		if v.IsNil() {
+			t.Logf("%s was nil", name)
+			return false
+		}
+
+		// Don't check map values
+		return true
+
+	case reflect.Struct:
+		nowhereNil := true
+		for i := 0; i < v.NumField(); i++ {
+			f := v.Field(i)
+			// Ignore unexported fields
+			if v.Type().Field(i).PkgPath != "" {
+				continue
+			}
+
+			nowhereNil = nowhereNil && checkNowhereNil(t, fmt.Sprintf("%s.%s", name, v.Type().Field(i).Name), f.Interface())
+		}
+
+		return nowhereNil
+
+	case reflect.Array:
+		fallthrough
+	case reflect.Chan:
+		fallthrough
+	case reflect.Func:
+		fallthrough
+	case reflect.Interface:
+		fallthrough
+	case reflect.UnsafePointer:
+		t.Logf("unhandled field %s, type: %s", name, v.Type().Kind())
+		return false
+
+	default:
+		return true
 	}
 }

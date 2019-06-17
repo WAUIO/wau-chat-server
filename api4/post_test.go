@@ -15,13 +15,16 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/assert"
+
 	"github.com/mattermost/mattermost-server/app"
 	"github.com/mattermost/mattermost-server/model"
 	"github.com/mattermost/mattermost-server/utils"
+	"github.com/mattermost/mattermost-server/utils/testutils"
 )
 
 func TestCreatePost(t *testing.T) {
-	th := Setup().InitBasic().InitSystemAdmin()
+	th := Setup().InitBasic()
 	defer th.TearDown()
 	Client := th.Client
 
@@ -65,7 +68,7 @@ func TestCreatePost(t *testing.T) {
 	CheckBadRequestStatus(t, resp)
 
 	post2 := &model.Post{ChannelId: th.BasicChannel2.Id, Message: "zz" + model.NewId() + "a", CreateAt: 123}
-	rpost2, resp := Client.CreatePost(post2)
+	rpost2, _ := Client.CreatePost(post2)
 
 	if rpost2.CreateAt == post2.CreateAt {
 		t.Fatal("create at should not match")
@@ -118,7 +121,7 @@ func TestCreatePost(t *testing.T) {
 }
 
 func TestCreatePostEphemeral(t *testing.T) {
-	th := Setup().InitBasic().InitSystemAdmin()
+	th := Setup().InitBasic()
 	defer th.TearDown()
 	Client := th.SystemAdminClient
 
@@ -154,7 +157,7 @@ func TestCreatePostEphemeral(t *testing.T) {
 	CheckUnauthorizedStatus(t, resp)
 
 	Client = th.Client
-	rpost, resp = Client.CreatePostEphemeral(ephemeralPost)
+	_, resp = Client.CreatePostEphemeral(ephemeralPost)
 	CheckForbiddenStatus(t, resp)
 }
 
@@ -165,22 +168,22 @@ func testCreatePostWithOutgoingHook(
 	triggerWhen int,
 	commentPostType bool,
 ) {
-	th := Setup().InitBasic().InitSystemAdmin()
+	th := Setup().InitBasic()
 	defer th.TearDown()
 	user := th.SystemAdminUser
 	team := th.BasicTeam
 	channel := th.BasicChannel
 
-	enableOutgoingWebhooks := th.App.Config().ServiceSettings.EnableOutgoingWebhooks
-	allowedUntrustedInternalConnections := th.App.Config().ServiceSettings.AllowedUntrustedInternalConnections
+	enableOutgoingWebhooks := *th.App.Config().ServiceSettings.EnableOutgoingWebhooks
+	allowedUntrustedInternalConnections := *th.App.Config().ServiceSettings.AllowedUntrustedInternalConnections
 	defer func() {
-		th.App.UpdateConfig(func(cfg *model.Config) { cfg.ServiceSettings.EnableOutgoingWebhooks = enableOutgoingWebhooks })
+		th.App.UpdateConfig(func(cfg *model.Config) { *cfg.ServiceSettings.EnableOutgoingWebhooks = enableOutgoingWebhooks })
 		th.App.UpdateConfig(func(cfg *model.Config) {
-			cfg.ServiceSettings.AllowedUntrustedInternalConnections = allowedUntrustedInternalConnections
+			*cfg.ServiceSettings.AllowedUntrustedInternalConnections = allowedUntrustedInternalConnections
 		})
 	}()
 
-	th.App.UpdateConfig(func(cfg *model.Config) { cfg.ServiceSettings.EnableOutgoingWebhooks = true })
+	th.App.UpdateConfig(func(cfg *model.Config) { *cfg.ServiceSettings.EnableOutgoingWebhooks = true })
 	th.App.UpdateConfig(func(cfg *model.Config) {
 		*cfg.ServiceSettings.AllowedUntrustedInternalConnections = "localhost 127.0.0.1"
 	})
@@ -354,7 +357,7 @@ func TestCreatePostWithOutgoingHook_no_content_type(t *testing.T) {
 }
 
 func TestCreatePostPublic(t *testing.T) {
-	th := Setup().InitBasic().InitSystemAdmin()
+	th := Setup().InitBasic()
 	defer th.TearDown()
 	Client := th.Client
 
@@ -399,7 +402,7 @@ func TestCreatePostPublic(t *testing.T) {
 }
 
 func TestCreatePostAll(t *testing.T) {
-	th := Setup().InitBasic().InitSystemAdmin()
+	th := Setup().InitBasic()
 	defer th.TearDown()
 	Client := th.Client
 
@@ -407,7 +410,7 @@ func TestCreatePostAll(t *testing.T) {
 
 	user := model.User{Email: th.GenerateTestEmail(), Nickname: "Joram Wilander", Password: "hello1", Username: GenerateTestUsername(), Roles: model.SYSTEM_USER_ROLE_ID}
 
-	directChannel, _ := th.App.CreateDirectChannel(th.BasicUser.Id, th.BasicUser2.Id)
+	directChannel, _ := th.App.GetOrCreateDirectChannel(th.BasicUser.Id, th.BasicUser2.Id)
 
 	ruser, resp := Client.CreateUser(&user)
 	CheckNoError(t, resp)
@@ -454,7 +457,7 @@ func TestCreatePostAll(t *testing.T) {
 }
 
 func TestCreatePostSendOutOfChannelMentions(t *testing.T) {
-	th := Setup().InitBasic().InitSystemAdmin()
+	th := Setup().InitBasic()
 	defer th.TearDown()
 	Client := th.Client
 
@@ -521,7 +524,7 @@ func TestCreatePostSendOutOfChannelMentions(t *testing.T) {
 }
 
 func TestUpdatePost(t *testing.T) {
-	th := Setup().InitBasic().InitSystemAdmin()
+	th := Setup().InitBasic()
 	defer th.TearDown()
 	Client := th.Client
 	channel := th.BasicChannel
@@ -577,6 +580,28 @@ func TestUpdatePost(t *testing.T) {
 	_, resp = Client.UpdatePost(rpost2.Id, up2)
 	CheckBadRequestStatus(t, resp)
 
+	rpost3, err := th.App.CreatePost(&model.Post{ChannelId: channel.Id, Message: "zz" + model.NewId() + "a", UserId: th.BasicUser.Id}, channel, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	fileIds := model.StringArray{"abcdef", "geh"}
+	up3 := &model.Post{Id: rpost3.Id, ChannelId: channel.Id, Message: "zz" + model.NewId() + " update post 3", FileIds: fileIds}
+	rrupost3, resp := Client.UpdatePost(rpost3.Id, up3)
+	CheckNoError(t, resp)
+	assert.Empty(t, rrupost3.FileIds)
+
+	up4 := &model.Post{Id: rpost3.Id, ChannelId: channel.Id, Message: "zz" + model.NewId() + " update post 3"}
+	up4.AddProp("attachments", []model.SlackAttachment{
+		{
+			Text: "Hello World",
+		},
+	})
+	rrupost3, resp = Client.UpdatePost(rpost3.Id, up4)
+	CheckNoError(t, resp)
+	assert.NotEqual(t, rpost3.EditAt, rrupost3.EditAt)
+	assert.NotEqual(t, rpost3.Attachments(), rrupost3.Attachments())
+
 	Client.Logout()
 	_, resp = Client.UpdatePost(rpost.Id, rpost)
 	CheckUnauthorizedStatus(t, resp)
@@ -587,12 +612,43 @@ func TestUpdatePost(t *testing.T) {
 
 	Client.Logout()
 
+	th.LoginTeamAdmin()
+	_, resp = Client.UpdatePost(rpost.Id, rpost)
+	CheckForbiddenStatus(t, resp)
+
+	Client.Logout()
+
 	_, resp = th.SystemAdminClient.UpdatePost(rpost.Id, rpost)
 	CheckNoError(t, resp)
 }
 
+func TestUpdateOthersPostInDirectMessageChannel(t *testing.T) {
+	// This test checks that a sysadmin with the "EDIT_OTHERS_POSTS" permission can edit someone else's post in a
+	// channel without a team (DM/GM). This indirectly checks for the proper cascading all the way to system-wide roles
+	// on the user object of permissions based on a post in a channel with no team ID.
+	th := Setup().InitBasic()
+	defer th.TearDown()
+
+	dmChannel := th.CreateDmChannel(th.SystemAdminUser)
+
+	post := &model.Post{
+		Message:       "asd",
+		ChannelId:     dmChannel.Id,
+		PendingPostId: model.NewId() + ":" + fmt.Sprint(model.GetMillis()),
+		UserId:        th.BasicUser.Id,
+		CreateAt:      0,
+	}
+
+	post, resp := th.Client.CreatePost(post)
+	CheckNoError(t, resp)
+
+	post.Message = "changed"
+	post, resp = th.SystemAdminClient.UpdatePost(post.Id, post)
+	CheckNoError(t, resp)
+}
+
 func TestPatchPost(t *testing.T) {
-	th := Setup().InitBasic().InitSystemAdmin()
+	th := Setup().InitBasic()
 	defer th.TearDown()
 	Client := th.Client
 	channel := th.BasicChannel
@@ -637,15 +693,29 @@ func TestPatchPost(t *testing.T) {
 	if rpost.Hashtags != "#otherhashtag" {
 		t.Fatal("Message did not update properly")
 	}
-	if len(rpost.FileIds) != 3 {
-		t.Fatal("FileIds did not update properly")
+	if len(rpost.FileIds) == 3 {
+		t.Fatal("FileIds should not update properly")
 	}
-	if !reflect.DeepEqual(rpost.FileIds, *patch.FileIds) {
-		t.Fatal("FileIds did not update properly")
+	if reflect.DeepEqual(rpost.FileIds, *patch.FileIds) {
+		t.Fatal("FileIds should not update")
 	}
 	if rpost.HasReactions {
 		t.Fatal("HasReactions did not update properly")
 	}
+
+	patch2 := &model.PostPatch{}
+	attachments := []model.SlackAttachment{
+		{
+			Text: "Hello World",
+		},
+	}
+	patch2.Props = new(model.StringInterface)
+	*patch2.Props = model.StringInterface{"attachments": attachments}
+
+	rpost2, resp := Client.PatchPost(post.Id, patch2)
+	CheckNoError(t, resp)
+	assert.NotEmpty(t, rpost2.Props["attachments"])
+	assert.NotEqual(t, rpost.EditAt, rpost2.EditAt)
 
 	if r, err := Client.DoApiPut("/posts/"+post.Id+"/patch", "garbage"); err == nil {
 		t.Fatal("should have errored")
@@ -673,14 +743,14 @@ func TestPatchPost(t *testing.T) {
 
 	th.LoginTeamAdmin()
 	_, resp = Client.PatchPost(post.Id, patch)
-	CheckNoError(t, resp)
+	CheckForbiddenStatus(t, resp)
 
 	_, resp = th.SystemAdminClient.PatchPost(post.Id, patch)
 	CheckNoError(t, resp)
 }
 
 func TestPinPost(t *testing.T) {
-	th := Setup().InitBasic().InitSystemAdmin()
+	th := Setup().InitBasic()
 	defer th.TearDown()
 	Client := th.Client
 
@@ -706,6 +776,22 @@ func TestPinPost(t *testing.T) {
 	_, resp = Client.PinPost(GenerateTestId())
 	CheckForbiddenStatus(t, resp)
 
+	t.Run("unable-to-pin-post-in-read-only-town-square", func(t *testing.T) {
+		townSquareIsReadOnly := *th.App.Config().TeamSettings.ExperimentalTownSquareIsReadOnly
+		th.App.SetLicense(model.NewTestLicense())
+		th.App.UpdateConfig(func(cfg *model.Config) { *cfg.TeamSettings.ExperimentalTownSquareIsReadOnly = true })
+
+		defer th.App.RemoveLicense()
+		defer th.App.UpdateConfig(func(cfg *model.Config) { *cfg.TeamSettings.ExperimentalTownSquareIsReadOnly = townSquareIsReadOnly })
+
+		channel, err := th.App.GetChannelByName("town-square", th.BasicTeam.Id, true)
+		assert.Nil(t, err)
+		adminPost := th.CreatePostWithClient(th.SystemAdminClient, channel)
+
+		_, resp = Client.PinPost(adminPost.Id)
+		CheckForbiddenStatus(t, resp)
+	})
+
 	Client.Logout()
 	_, resp = Client.PinPost(post.Id)
 	CheckUnauthorizedStatus(t, resp)
@@ -715,7 +801,7 @@ func TestPinPost(t *testing.T) {
 }
 
 func TestUnpinPost(t *testing.T) {
-	th := Setup().InitBasic().InitSystemAdmin()
+	th := Setup().InitBasic()
 	defer th.TearDown()
 	Client := th.Client
 
@@ -750,7 +836,7 @@ func TestUnpinPost(t *testing.T) {
 }
 
 func TestGetPostsForChannel(t *testing.T) {
-	th := Setup().InitBasic().InitSystemAdmin()
+	th := Setup().InitBasic()
 	defer th.TearDown()
 	Client := th.Client
 
@@ -862,7 +948,7 @@ func TestGetPostsForChannel(t *testing.T) {
 }
 
 func TestGetFlaggedPostsForUser(t *testing.T) {
-	th := Setup().InitBasic().InitSystemAdmin()
+	th := Setup().InitBasic()
 	defer th.TearDown()
 	Client := th.Client
 	user := th.BasicUser
@@ -878,9 +964,11 @@ func TestGetFlaggedPostsForUser(t *testing.T) {
 		Name:     post1.Id,
 		Value:    "true",
 	}
-	Client.UpdatePreferences(user.Id, &model.Preferences{preference})
+	_, resp := Client.UpdatePreferences(user.Id, &model.Preferences{preference})
+	CheckNoError(t, resp)
 	preference.Name = post2.Id
-	Client.UpdatePreferences(user.Id, &model.Preferences{preference})
+	_, resp = Client.UpdatePreferences(user.Id, &model.Preferences{preference})
+	CheckNoError(t, resp)
 
 	opl := model.NewPostList()
 	opl.AddPost(post1)
@@ -1015,6 +1103,66 @@ func TestGetFlaggedPostsForUser(t *testing.T) {
 		t.Fatal("should be empty")
 	}
 
+	channel4 := th.CreateChannelWithClient(th.SystemAdminClient, model.CHANNEL_PRIVATE)
+	post5 := th.CreatePostWithClient(th.SystemAdminClient, channel4)
+
+	preference.Name = post5.Id
+	_, resp = Client.UpdatePreferences(user.Id, &model.Preferences{preference})
+	CheckForbiddenStatus(t, resp)
+
+	rpl, resp = Client.GetFlaggedPostsForUser(user.Id, 0, 10)
+	CheckNoError(t, resp)
+
+	if len(rpl.Posts) != 3 {
+		t.Fatal("should have returned 3 posts")
+	}
+
+	if !reflect.DeepEqual(rpl.Posts, opl.Posts) {
+		t.Fatal("posts should have matched")
+	}
+
+	th.AddUserToChannel(user, channel4)
+	_, resp = Client.UpdatePreferences(user.Id, &model.Preferences{preference})
+	CheckNoError(t, resp)
+
+	rpl, resp = Client.GetFlaggedPostsForUser(user.Id, 0, 10)
+	CheckNoError(t, resp)
+
+	opl.AddPost(post5)
+	opl.AddOrder(post5.Id)
+
+	if len(rpl.Posts) != 4 {
+		t.Fatal("should have returned 4 posts")
+	}
+
+	if !reflect.DeepEqual(rpl.Posts, opl.Posts) {
+		t.Fatal("posts should have matched")
+	}
+
+	err := th.App.RemoveUserFromChannel(user.Id, "", channel4)
+	if err != nil {
+		t.Error("Unable to remove user from channel")
+	}
+
+	rpl, resp = Client.GetFlaggedPostsForUser(user.Id, 0, 10)
+	CheckNoError(t, resp)
+
+	opl2 := model.NewPostList()
+	opl2.AddPost(post1)
+	opl2.AddOrder(post1.Id)
+	opl2.AddPost(post2)
+	opl2.AddOrder(post2.Id)
+	opl2.AddPost(post4)
+	opl2.AddOrder(post4.Id)
+
+	if len(rpl.Posts) != 3 {
+		t.Fatal("should have returned 3 posts")
+	}
+
+	if !reflect.DeepEqual(rpl.Posts, opl2.Posts) {
+		t.Fatal("posts should have matched")
+	}
+
 	_, resp = Client.GetFlaggedPostsForUser("junk", 0, 10)
 	CheckBadRequestStatus(t, resp)
 
@@ -1023,22 +1171,22 @@ func TestGetFlaggedPostsForUser(t *testing.T) {
 
 	Client.Logout()
 
-	rpl, resp = Client.GetFlaggedPostsForUserInChannel(user.Id, channel1.Id, 0, 10)
+	_, resp = Client.GetFlaggedPostsForUserInChannel(user.Id, channel1.Id, 0, 10)
 	CheckUnauthorizedStatus(t, resp)
 
-	rpl, resp = Client.GetFlaggedPostsForUserInTeam(user.Id, team1.Id, 0, 10)
+	_, resp = Client.GetFlaggedPostsForUserInTeam(user.Id, team1.Id, 0, 10)
 	CheckUnauthorizedStatus(t, resp)
 
-	rpl, resp = Client.GetFlaggedPostsForUser(user.Id, 0, 10)
+	_, resp = Client.GetFlaggedPostsForUser(user.Id, 0, 10)
 	CheckUnauthorizedStatus(t, resp)
 
-	rpl, resp = th.SystemAdminClient.GetFlaggedPostsForUserInChannel(user.Id, channel1.Id, 0, 10)
+	_, resp = th.SystemAdminClient.GetFlaggedPostsForUserInChannel(user.Id, channel1.Id, 0, 10)
 	CheckNoError(t, resp)
 
-	rpl, resp = th.SystemAdminClient.GetFlaggedPostsForUserInTeam(user.Id, team1.Id, 0, 10)
+	_, resp = th.SystemAdminClient.GetFlaggedPostsForUserInTeam(user.Id, team1.Id, 0, 10)
 	CheckNoError(t, resp)
 
-	rpl, resp = th.SystemAdminClient.GetFlaggedPostsForUser(user.Id, 0, 10)
+	_, resp = th.SystemAdminClient.GetFlaggedPostsForUser(user.Id, 0, 10)
 	CheckNoError(t, resp)
 }
 
@@ -1127,7 +1275,7 @@ func TestGetPostsAfterAndBefore(t *testing.T) {
 }
 
 func TestGetPost(t *testing.T) {
-	th := Setup().InitBasic().InitSystemAdmin()
+	th := Setup().InitBasic()
 	defer th.TearDown()
 	Client := th.Client
 
@@ -1153,30 +1301,30 @@ func TestGetPost(t *testing.T) {
 	Client.RemoveUserFromChannel(th.BasicChannel.Id, th.BasicUser.Id)
 
 	// Channel is public, should be able to read post
-	post, resp = Client.GetPost(th.BasicPost.Id, "")
+	_, resp = Client.GetPost(th.BasicPost.Id, "")
 	CheckNoError(t, resp)
 
 	privatePost := th.CreatePostWithClient(Client, th.BasicPrivateChannel)
 
-	post, resp = Client.GetPost(privatePost.Id, "")
+	_, resp = Client.GetPost(privatePost.Id, "")
 	CheckNoError(t, resp)
 
 	Client.RemoveUserFromChannel(th.BasicPrivateChannel.Id, th.BasicUser.Id)
 
 	// Channel is private, should not be able to read post
-	post, resp = Client.GetPost(privatePost.Id, "")
+	_, resp = Client.GetPost(privatePost.Id, "")
 	CheckForbiddenStatus(t, resp)
 
 	Client.Logout()
 	_, resp = Client.GetPost(model.NewId(), "")
 	CheckUnauthorizedStatus(t, resp)
 
-	post, resp = th.SystemAdminClient.GetPost(th.BasicPost.Id, "")
+	_, resp = th.SystemAdminClient.GetPost(th.BasicPost.Id, "")
 	CheckNoError(t, resp)
 }
 
 func TestDeletePost(t *testing.T) {
-	th := Setup().InitBasic().InitSystemAdmin()
+	th := Setup().InitBasic()
 	defer th.TearDown()
 	Client := th.Client
 
@@ -1214,7 +1362,7 @@ func TestDeletePost(t *testing.T) {
 }
 
 func TestGetPostThread(t *testing.T) {
-	th := Setup().InitBasic().InitSystemAdmin()
+	th := Setup().InitBasic()
 	defer th.TearDown()
 	Client := th.Client
 
@@ -1267,7 +1415,7 @@ func TestGetPostThread(t *testing.T) {
 	_, resp = Client.GetPostThread(model.NewId(), "")
 	CheckUnauthorizedStatus(t, resp)
 
-	list, resp = th.SystemAdminClient.GetPostThread(th.BasicPost.Id, "")
+	_, resp = th.SystemAdminClient.GetPostThread(th.BasicPost.Id, "")
 	CheckNoError(t, resp)
 }
 
@@ -1317,6 +1465,38 @@ func TestSearchPosts(t *testing.T) {
 		t.Fatal("wrong search")
 	}
 
+	terms = "search"
+	page := 0
+	perPage := 2
+	searchParams = model.SearchParameter{
+		Terms:          &terms,
+		IsOrSearch:     &isOrSearch,
+		TimeZoneOffset: &timezoneOffset,
+		Page:           &page,
+		PerPage:        &perPage,
+	}
+	posts2, resp := Client.SearchPostsWithParams(th.BasicTeam.Id, &searchParams)
+	CheckNoError(t, resp)
+	if len(posts2.Order) != 3 { // We don't support paging for DB search yet, modify this when we do.
+		t.Fatal("Wrong number of posts", len(posts2.Order))
+	}
+	assert.Equal(t, posts.Order[0], posts2.Order[0])
+	assert.Equal(t, posts.Order[1], posts2.Order[1])
+
+	page = 1
+	searchParams = model.SearchParameter{
+		Terms:          &terms,
+		IsOrSearch:     &isOrSearch,
+		TimeZoneOffset: &timezoneOffset,
+		Page:           &page,
+		PerPage:        &perPage,
+	}
+	posts2, resp = Client.SearchPostsWithParams(th.BasicTeam.Id, &searchParams)
+	CheckNoError(t, resp)
+	if len(posts2.Order) != 0 { // We don't support paging for DB search yet, modify this when we do.
+		t.Fatal("Wrong number of posts", len(posts2.Order))
+	}
+
 	posts, resp = Client.SearchPosts(th.BasicTeam.Id, "search", false)
 	CheckNoError(t, resp)
 	if len(posts.Order) != 3 {
@@ -1335,7 +1515,15 @@ func TestSearchPosts(t *testing.T) {
 		t.Fatal("wrong search")
 	}
 
-	posts, resp = Client.SearchPostsIncludeDeletedChannels(th.BasicTeam.Id, "#hashtag", false)
+	terms = "#hashtag"
+	includeDeletedChannels := true
+	searchParams = model.SearchParameter{
+		Terms:                  &terms,
+		IsOrSearch:             &isOrSearch,
+		TimeZoneOffset:         &timezoneOffset,
+		IncludeDeletedChannels: &includeDeletedChannels,
+	}
+	posts, resp = Client.SearchPostsWithParams(th.BasicTeam.Id, &searchParams)
 	CheckNoError(t, resp)
 	if len(posts.Order) != 2 {
 		t.Fatal("wrong search")
@@ -1345,18 +1533,19 @@ func TestSearchPosts(t *testing.T) {
 		*cfg.TeamSettings.ExperimentalViewArchivedChannels = false
 	})
 
-	posts, resp = Client.SearchPostsIncludeDeletedChannels(th.BasicTeam.Id, "#hashtag", false)
+	posts, resp = Client.SearchPostsWithParams(th.BasicTeam.Id, &searchParams)
 	CheckNoError(t, resp)
 	if len(posts.Order) != 1 {
 		t.Fatal("wrong search")
 	}
 
-	if posts, resp = Client.SearchPosts(th.BasicTeam.Id, "*", false); len(posts.Order) != 0 {
+	if posts, _ = Client.SearchPosts(th.BasicTeam.Id, "*", false); len(posts.Order) != 0 {
 		t.Fatal("searching for just * shouldn't return any results")
 	}
 
 	posts, resp = Client.SearchPosts(th.BasicTeam.Id, "post1 post2", true)
 	CheckNoError(t, resp)
+
 	if len(posts.Order) != 2 {
 		t.Fatal("wrong search results")
 	}
@@ -1382,13 +1571,13 @@ func TestSearchHashtagPosts(t *testing.T) {
 	Client := th.Client
 
 	message := "#sgtitlereview with space"
-	_ = th.CreateMessagePost(message)
+	assert.NotNil(t, th.CreateMessagePost(message))
 
 	message = "#sgtitlereview\n with return"
-	_ = th.CreateMessagePost(message)
+	assert.NotNil(t, th.CreateMessagePost(message))
 
 	message = "no hashtag"
-	_ = th.CreateMessagePost(message)
+	assert.NotNil(t, th.CreateMessagePost(message))
 
 	posts, resp := Client.SearchPosts(th.BasicTeam.Id, "#sgtitlereview", false)
 	CheckNoError(t, resp)
@@ -1581,28 +1770,33 @@ func TestSearchPostsWithDateFlags(t *testing.T) {
 			resultCount = resultCount + 1
 		}
 	}
-	if resultCount != 3 {
+	if resultCount != 2 {
 		t.Fatalf("wrong number of posts returned %v", len(posts.Order))
 	}
 
 	posts, _ = Client.SearchPosts(th.BasicTeam.Id, "before:2018-08-02", false)
-	if len(posts.Order) != 2 {
+	if len(posts.Order) != 1 {
 		t.Fatalf("wrong number of posts returned %v", len(posts.Order))
 	}
 
 	posts, _ = Client.SearchPosts(th.BasicTeam.Id, "before:2018-08-03 after:2018-08-02", false)
-	if len(posts.Order) != 2 {
+	if len(posts.Order) != 0 {
+		t.Fatalf("wrong number of posts returned %v", len(posts.Order))
+	}
+
+	posts, _ = Client.SearchPosts(th.BasicTeam.Id, "before:2018-08-03 after:2018-08-01", false)
+	if len(posts.Order) != 1 {
 		t.Fatalf("wrong number of posts returned %v", len(posts.Order))
 	}
 }
 
 func TestGetFileInfosForPost(t *testing.T) {
-	th := Setup().InitBasic().InitSystemAdmin()
+	th := Setup().InitBasic()
 	defer th.TearDown()
 	Client := th.Client
 
 	fileIds := make([]string, 3)
-	if data, err := readTestFile("test.png"); err != nil {
+	if data, err := testutils.ReadTestFile("test.png"); err != nil {
 		t.Fatal(err)
 	} else {
 		for i := 0; i < 3; i++ {

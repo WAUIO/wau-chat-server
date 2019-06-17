@@ -13,7 +13,7 @@ import (
 )
 
 func TestCache(t *testing.T) {
-	th := Setup().InitBasic()
+	th := Setup(t).InitBasic()
 	defer th.TearDown()
 
 	session := &model.Session{
@@ -22,23 +22,23 @@ func TestCache(t *testing.T) {
 		UserId: model.NewId(),
 	}
 
-	th.App.sessionCache.AddWithExpiresInSecs(session.Token, session, 5*60)
+	th.App.Srv.sessionCache.AddWithExpiresInSecs(session.Token, session, 5*60)
 
-	keys := th.App.sessionCache.Keys()
+	keys := th.App.Srv.sessionCache.Keys()
 	if len(keys) <= 0 {
 		t.Fatal("should have items")
 	}
 
 	th.App.ClearSessionCacheForUser(session.UserId)
 
-	rkeys := th.App.sessionCache.Keys()
+	rkeys := th.App.Srv.sessionCache.Keys()
 	if len(rkeys) != len(keys)-1 {
 		t.Fatal("should have one less")
 	}
 }
 
 func TestGetSessionIdleTimeoutInMinutes(t *testing.T) {
-	th := Setup().InitBasic()
+	th := Setup(t).InitBasic()
 	defer th.TearDown()
 
 	session := &model.Session{
@@ -54,8 +54,6 @@ func TestGetSessionIdleTimeoutInMinutes(t *testing.T) {
 	require.Nil(t, err)
 	assert.Equal(t, rsession.Id, session.Id)
 
-	rsession, err = th.App.GetSession(session.Token)
-
 	// Test regular session, should timeout
 	time := session.LastActivityAt - (1000 * 60 * 6)
 	<-th.App.Srv.Store.Session().UpdateLastActivityAt(session.Id, time)
@@ -66,20 +64,6 @@ func TestGetSessionIdleTimeoutInMinutes(t *testing.T) {
 	assert.Equal(t, "api.context.invalid_token.error", err.Id)
 	assert.Equal(t, "idle timeout", err.DetailedError)
 	assert.Nil(t, rsession)
-
-	// Test mobile session, should not timeout
-	session = &model.Session{
-		UserId:   model.NewId(),
-		DeviceId: "android:" + model.NewId(),
-	}
-
-	session, _ = th.App.CreateSession(session)
-	time = session.LastActivityAt - (1000 * 60 * 6)
-	<-th.App.Srv.Store.Session().UpdateLastActivityAt(session.Id, time)
-	th.App.ClearSessionCacheForUserSkipClusterSend(session.UserId)
-
-	_, err = th.App.GetSession(session.Token)
-	assert.Nil(t, err)
 
 	// Test oauth session, should not timeout
 	session = &model.Session{
@@ -109,11 +93,12 @@ func TestGetSessionIdleTimeoutInMinutes(t *testing.T) {
 	_, err = th.App.GetSession(session.Token)
 	assert.Nil(t, err)
 
-	// Test regular session with license off, should not timeout
-	th.App.SetLicense(nil)
+	th.App.SetLicense(model.NewTestLicense("compliance"))
 
+	// Test mobile session, should not timeout
 	session = &model.Session{
-		UserId: model.NewId(),
+		UserId:   model.NewId(),
+		DeviceId: model.NewId(),
 	}
 
 	session, _ = th.App.CreateSession(session)
@@ -123,8 +108,6 @@ func TestGetSessionIdleTimeoutInMinutes(t *testing.T) {
 
 	_, err = th.App.GetSession(session.Token)
 	assert.Nil(t, err)
-
-	th.App.SetLicense(model.NewTestLicense("compliance"))
 
 	// Test regular session with timeout set to 0, should not timeout
 	th.App.UpdateConfig(func(cfg *model.Config) { *cfg.ServiceSettings.SessionIdleTimeoutInMinutes = 0 })

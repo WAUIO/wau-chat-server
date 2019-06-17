@@ -13,7 +13,7 @@ import (
 )
 
 func TestSendNotifications(t *testing.T) {
-	th := Setup().InitBasic()
+	th := Setup(t).InitBasic()
 	defer th.TearDown()
 
 	th.App.AddUserToChannel(th.BasicUser2, th.BasicChannel)
@@ -30,9 +30,9 @@ func TestSendNotifications(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	mentions, err := th.App.SendNotifications(post1, th.BasicTeam, th.BasicChannel, th.BasicUser, nil)
-	if err != nil {
-		t.Fatal(err)
+	mentions, err2 := th.App.SendNotifications(post1, th.BasicTeam, th.BasicChannel, th.BasicUser, nil)
+	if err2 != nil {
+		t.Fatal(err2)
 	} else if mentions == nil {
 		t.Log(mentions)
 		t.Fatal("user should have been mentioned")
@@ -41,7 +41,7 @@ func TestSendNotifications(t *testing.T) {
 		t.Fatal("user should have been mentioned")
 	}
 
-	dm, err := th.App.CreateDirectChannel(th.BasicUser.Id, th.BasicUser2.Id)
+	dm, err := th.App.GetOrCreateDirectChannel(th.BasicUser.Id, th.BasicUser2.Id)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -56,9 +56,9 @@ func TestSendNotifications(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	_, err = th.App.SendNotifications(post2, th.BasicTeam, dm, th.BasicUser, nil)
-	if err != nil {
-		t.Fatal(err)
+	_, err2 = th.App.SendNotifications(post2, th.BasicTeam, dm, th.BasicUser, nil)
+	if err2 != nil {
+		t.Fatal(err2)
 	}
 
 	th.App.UpdateActive(th.BasicUser2, false)
@@ -74,14 +74,14 @@ func TestSendNotifications(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	_, err = th.App.SendNotifications(post3, th.BasicTeam, dm, th.BasicUser, nil)
-	if err != nil {
-		t.Fatal(err)
+	_, err2 = th.App.SendNotifications(post3, th.BasicTeam, dm, th.BasicUser, nil)
+	if err2 != nil {
+		t.Fatal(err2)
 	}
 
 	th.BasicChannel.DeleteAt = 1
-	mentions, err = th.App.SendNotifications(post1, th.BasicTeam, th.BasicChannel, th.BasicUser, nil)
-	assert.Nil(t, err)
+	mentions, err2 = th.App.SendNotifications(post1, th.BasicTeam, th.BasicChannel, th.BasicUser, nil)
+	assert.Nil(t, err2)
 	assert.Len(t, mentions, 0)
 }
 
@@ -474,6 +474,51 @@ func TestGetExplicitMentions(t *testing.T) {
 				ChannelMentioned: true,
 			},
 		},
+		"MultibyteCharacter": {
+			Message:  "My name is 萌",
+			Keywords: map[string][]string{"萌": {id1}},
+			Expected: &ExplicitMentions{
+				MentionedUserIds: map[string]bool{
+					id1: true,
+				},
+			},
+		},
+		"MultibyteCharacterAtBeginningOfSentence": {
+			Message:  "이메일을 보내다.",
+			Keywords: map[string][]string{"이메일": {id1}},
+			Expected: &ExplicitMentions{
+				MentionedUserIds: map[string]bool{
+					id1: true,
+				},
+			},
+		},
+		"MultibyteCharacterInPartOfSentence": {
+			Message:  "我爱吃番茄炒饭",
+			Keywords: map[string][]string{"番茄": {id1}},
+			Expected: &ExplicitMentions{
+				MentionedUserIds: map[string]bool{
+					id1: true,
+				},
+			},
+		},
+		"MultibyteCharacterAtEndOfSentence": {
+			Message:  "こんにちは、世界",
+			Keywords: map[string][]string{"世界": {id1}},
+			Expected: &ExplicitMentions{
+				MentionedUserIds: map[string]bool{
+					id1: true,
+				},
+			},
+		},
+		"MultibyteCharacterTwiceInSentence": {
+			Message:  "石橋さんが石橋を渡る",
+			Keywords: map[string][]string{"石橋": {id1}},
+			Expected: &ExplicitMentions{
+				MentionedUserIds: map[string]bool{
+					id1: true,
+				},
+			},
+		},
 
 		// The following tests cover cases where the message mentions @user.name, so we shouldn't assume that
 		// the user might be intending to mention some @user that isn't in the channel.
@@ -528,6 +573,20 @@ func TestGetExplicitMentions(t *testing.T) {
 					id2: true,
 				},
 				HereMentioned: true,
+			},
+		},
+		"Name on keywords is a prefix of a mention": {
+			Message:  "@other @test-two",
+			Keywords: map[string][]string{"@test": {model.NewId()}},
+			Expected: &ExplicitMentions{
+				OtherPotentialMentions: []string{"other", "test-two"},
+			},
+		},
+		"Name on mentions is a prefix of other mention": {
+			Message:  "@other-one @other @other-two",
+			Keywords: nil,
+			Expected: &ExplicitMentions{
+				OtherPotentialMentions: []string{"other-one", "other", "other-two"},
 			},
 		},
 	} {
@@ -612,7 +671,7 @@ func TestGetExplicitMentionsAtHere(t *testing.T) {
 }
 
 func TestGetMentionKeywords(t *testing.T) {
-	th := Setup()
+	th := Setup(t)
 	defer th.TearDown()
 
 	// user with username or custom mentions enabled
@@ -625,8 +684,14 @@ func TestGetMentionKeywords(t *testing.T) {
 		},
 	}
 
+	channelMemberNotifyPropsMap1Off := map[string]model.StringMap{
+		user1.Id: {
+			"ignore_channel_mentions": model.IGNORE_CHANNEL_MENTIONS_OFF,
+		},
+	}
+
 	profiles := map[string]*model.User{user1.Id: user1}
-	mentions := th.App.GetMentionKeywordsInChannel(profiles, true)
+	mentions := th.App.GetMentionKeywordsInChannel(profiles, true, channelMemberNotifyPropsMap1Off)
 	if len(mentions) != 3 {
 		t.Fatal("should've returned three mention keywords")
 	} else if ids, ok := mentions["user"]; !ok || ids[0] != user1.Id {
@@ -647,8 +712,14 @@ func TestGetMentionKeywords(t *testing.T) {
 		},
 	}
 
+	channelMemberNotifyPropsMap2Off := map[string]model.StringMap{
+		user2.Id: {
+			"ignore_channel_mentions": model.IGNORE_CHANNEL_MENTIONS_OFF,
+		},
+	}
+
 	profiles = map[string]*model.User{user2.Id: user2}
-	mentions = th.App.GetMentionKeywordsInChannel(profiles, true)
+	mentions = th.App.GetMentionKeywordsInChannel(profiles, true, channelMemberNotifyPropsMap2Off)
 	if len(mentions) != 2 {
 		t.Fatal("should've returned two mention keyword")
 	} else if ids, ok := mentions["First"]; !ok || ids[0] != user2.Id {
@@ -665,14 +736,59 @@ func TestGetMentionKeywords(t *testing.T) {
 		},
 	}
 
+	// Channel-wide mentions are not ignored on channel level
+	channelMemberNotifyPropsMap3Off := map[string]model.StringMap{
+		user3.Id: {
+			"ignore_channel_mentions": model.IGNORE_CHANNEL_MENTIONS_OFF,
+		},
+	}
 	profiles = map[string]*model.User{user3.Id: user3}
-	mentions = th.App.GetMentionKeywordsInChannel(profiles, true)
+	mentions = th.App.GetMentionKeywordsInChannel(profiles, true, channelMemberNotifyPropsMap3Off)
 	if len(mentions) != 3 {
 		t.Fatal("should've returned three mention keywords")
 	} else if ids, ok := mentions["@channel"]; !ok || ids[0] != user3.Id {
 		t.Fatal("should've returned mention key of @channel")
 	} else if ids, ok := mentions["@all"]; !ok || ids[0] != user3.Id {
 		t.Fatal("should've returned mention key of @all")
+	}
+
+	// Channel member notify props is set to default
+	channelMemberNotifyPropsMapDefault := map[string]model.StringMap{
+		user3.Id: {
+			"ignore_channel_mentions": model.IGNORE_CHANNEL_MENTIONS_DEFAULT,
+		},
+	}
+	profiles = map[string]*model.User{user3.Id: user3}
+	mentions = th.App.GetMentionKeywordsInChannel(profiles, true, channelMemberNotifyPropsMapDefault)
+	if len(mentions) != 3 {
+		t.Fatal("should've returned three mention keywords")
+	} else if ids, ok := mentions["@channel"]; !ok || ids[0] != user3.Id {
+		t.Fatal("should've returned mention key of @channel")
+	} else if ids, ok := mentions["@all"]; !ok || ids[0] != user3.Id {
+		t.Fatal("should've returned mention key of @all")
+	}
+
+	// Channel member notify props is empty
+	channelMemberNotifyPropsMapEmpty := map[string]model.StringMap{}
+	profiles = map[string]*model.User{user3.Id: user3}
+	mentions = th.App.GetMentionKeywordsInChannel(profiles, true, channelMemberNotifyPropsMapEmpty)
+	if len(mentions) != 3 {
+		t.Fatal("should've returned three mention keywords")
+	} else if ids, ok := mentions["@channel"]; !ok || ids[0] != user3.Id {
+		t.Fatal("should've returned mention key of @channel")
+	} else if ids, ok := mentions["@all"]; !ok || ids[0] != user3.Id {
+		t.Fatal("should've returned mention key of @all")
+	}
+
+	// Channel-wide mentions are ignored channel level
+	channelMemberNotifyPropsMap3On := map[string]model.StringMap{
+		user3.Id: {
+			"ignore_channel_mentions": model.IGNORE_CHANNEL_MENTIONS_ON,
+		},
+	}
+	mentions = th.App.GetMentionKeywordsInChannel(profiles, true, channelMemberNotifyPropsMap3On)
+	if len(mentions) == 0 {
+		t.Fatal("should've not returned any keywords")
 	}
 
 	// user with all types of mentions enabled
@@ -687,8 +803,15 @@ func TestGetMentionKeywords(t *testing.T) {
 		},
 	}
 
+	// Channel-wide mentions are not ignored on channel level
+	channelMemberNotifyPropsMap4Off := map[string]model.StringMap{
+		user4.Id: {
+			"ignore_channel_mentions": model.IGNORE_CHANNEL_MENTIONS_OFF,
+		},
+	}
+
 	profiles = map[string]*model.User{user4.Id: user4}
-	mentions = th.App.GetMentionKeywordsInChannel(profiles, true)
+	mentions = th.App.GetMentionKeywordsInChannel(profiles, true, channelMemberNotifyPropsMap4Off)
 	if len(mentions) != 6 {
 		t.Fatal("should've returned six mention keywords")
 	} else if ids, ok := mentions["user"]; !ok || ids[0] != user4.Id {
@@ -703,6 +826,25 @@ func TestGetMentionKeywords(t *testing.T) {
 		t.Fatal("should've returned mention key of @channel")
 	} else if ids, ok := mentions["@all"]; !ok || ids[0] != user4.Id {
 		t.Fatal("should've returned mention key of @all")
+	}
+
+	// Channel-wide mentions are ignored on channel level
+	channelMemberNotifyPropsMap4On := map[string]model.StringMap{
+		user4.Id: {
+			"ignore_channel_mentions": model.IGNORE_CHANNEL_MENTIONS_ON,
+		},
+	}
+	mentions = th.App.GetMentionKeywordsInChannel(profiles, true, channelMemberNotifyPropsMap4On)
+	if len(mentions) != 4 {
+		t.Fatal("should've returned four mention keywords")
+	} else if ids, ok := mentions["user"]; !ok || ids[0] != user4.Id {
+		t.Fatal("should've returned mention key of user")
+	} else if ids, ok := mentions["@user"]; !ok || ids[0] != user4.Id {
+		t.Fatal("should've returned mention key of @user")
+	} else if ids, ok := mentions["mention"]; !ok || ids[0] != user4.Id {
+		t.Fatal("should've returned mention key of mention")
+	} else if ids, ok := mentions["First"]; !ok || ids[0] != user4.Id {
+		t.Fatal("should've returned mention key of First")
 	}
 
 	dup_count := func(list []string) map[string]int {
@@ -731,7 +873,22 @@ func TestGetMentionKeywords(t *testing.T) {
 		user3.Id: user3,
 		user4.Id: user4,
 	}
-	mentions = th.App.GetMentionKeywordsInChannel(profiles, true)
+	// Channel-wide mentions are not ignored on channel level for all users
+	channelMemberNotifyPropsMap5Off := map[string]model.StringMap{
+		user1.Id: {
+			"ignore_channel_mentions": model.IGNORE_CHANNEL_MENTIONS_OFF,
+		},
+		user2.Id: {
+			"ignore_channel_mentions": model.IGNORE_CHANNEL_MENTIONS_OFF,
+		},
+		user3.Id: {
+			"ignore_channel_mentions": model.IGNORE_CHANNEL_MENTIONS_OFF,
+		},
+		user4.Id: {
+			"ignore_channel_mentions": model.IGNORE_CHANNEL_MENTIONS_OFF,
+		},
+	}
+	mentions = th.App.GetMentionKeywordsInChannel(profiles, true, channelMemberNotifyPropsMap5Off)
 	if len(mentions) != 6 {
 		t.Fatal("should've returned six mention keywords")
 	} else if ids, ok := mentions["user"]; !ok || len(ids) != 2 || (ids[0] != user1.Id && ids[1] != user1.Id) || (ids[0] != user4.Id && ids[1] != user4.Id) {
@@ -750,7 +907,7 @@ func TestGetMentionKeywords(t *testing.T) {
 
 	// multiple users and more than MaxNotificationsPerChannel
 	th.App.UpdateConfig(func(cfg *model.Config) { *cfg.TeamSettings.MaxNotificationsPerChannel = 3 })
-	mentions = th.App.GetMentionKeywordsInChannel(profiles, true)
+	mentions = th.App.GetMentionKeywordsInChannel(profiles, true, channelMemberNotifyPropsMap4Off)
 	if len(mentions) != 4 {
 		t.Fatal("should've returned four mention keywords")
 	} else if _, ok := mentions["@channel"]; ok {
@@ -765,7 +922,7 @@ func TestGetMentionKeywords(t *testing.T) {
 	profiles = map[string]*model.User{
 		user1.Id: user1,
 	}
-	mentions = th.App.GetMentionKeywordsInChannel(profiles, false)
+	mentions = th.App.GetMentionKeywordsInChannel(profiles, false, channelMemberNotifyPropsMap4Off)
 	if len(mentions) != 3 {
 		t.Fatal("should've returned three mention keywords")
 	} else if ids, ok := mentions["user"]; !ok || len(ids) != 1 || ids[0] != user1.Id {
@@ -816,4 +973,166 @@ func TestGetMentionsEnabledFields(t *testing.T) {
 
 	assert.EqualValues(t, 4, len(mentionEnabledFields))
 	assert.EqualValues(t, expectedFields, mentionEnabledFields)
+}
+
+func TestPostNotificationGetChannelName(t *testing.T) {
+	sender := &model.User{Id: model.NewId(), Username: "sender", FirstName: "Sender", LastName: "Sender", Nickname: "Sender"}
+	recipient := &model.User{Id: model.NewId(), Username: "recipient", FirstName: "Recipient", LastName: "Recipient", Nickname: "Recipient"}
+	otherUser := &model.User{Id: model.NewId(), Username: "other", FirstName: "Other", LastName: "Other", Nickname: "Other"}
+	profileMap := map[string]*model.User{
+		sender.Id:    sender,
+		recipient.Id: recipient,
+		otherUser.Id: otherUser,
+	}
+
+	for name, testCase := range map[string]struct {
+		channel     *model.Channel
+		nameFormat  string
+		recipientId string
+		expected    string
+	}{
+		"regular channel": {
+			channel:  &model.Channel{Type: model.CHANNEL_OPEN, Name: "channel", DisplayName: "My Channel"},
+			expected: "My Channel",
+		},
+		"direct channel, unspecified": {
+			channel:  &model.Channel{Type: model.CHANNEL_DIRECT},
+			expected: "sender",
+		},
+		"direct channel, username": {
+			channel:    &model.Channel{Type: model.CHANNEL_DIRECT},
+			nameFormat: model.SHOW_USERNAME,
+			expected:   "sender",
+		},
+		"direct channel, full name": {
+			channel:    &model.Channel{Type: model.CHANNEL_DIRECT},
+			nameFormat: model.SHOW_FULLNAME,
+			expected:   "Sender Sender",
+		},
+		"direct channel, nickname": {
+			channel:    &model.Channel{Type: model.CHANNEL_DIRECT},
+			nameFormat: model.SHOW_NICKNAME_FULLNAME,
+			expected:   "Sender",
+		},
+		"group channel, unspecified": {
+			channel:  &model.Channel{Type: model.CHANNEL_GROUP},
+			expected: "other, sender",
+		},
+		"group channel, username": {
+			channel:    &model.Channel{Type: model.CHANNEL_GROUP},
+			nameFormat: model.SHOW_USERNAME,
+			expected:   "other, sender",
+		},
+		"group channel, full name": {
+			channel:    &model.Channel{Type: model.CHANNEL_GROUP},
+			nameFormat: model.SHOW_FULLNAME,
+			expected:   "Other Other, Sender Sender",
+		},
+		"group channel, nickname": {
+			channel:    &model.Channel{Type: model.CHANNEL_GROUP},
+			nameFormat: model.SHOW_NICKNAME_FULLNAME,
+			expected:   "Other, Sender",
+		},
+		"group channel, not excluding current user": {
+			channel:     &model.Channel{Type: model.CHANNEL_GROUP},
+			nameFormat:  model.SHOW_NICKNAME_FULLNAME,
+			expected:    "Other, Sender",
+			recipientId: "",
+		},
+	} {
+		t.Run(name, func(t *testing.T) {
+			notification := &postNotification{
+				channel:    testCase.channel,
+				sender:     sender,
+				profileMap: profileMap,
+			}
+
+			recipientId := recipient.Id
+			if testCase.recipientId != "" {
+				recipientId = testCase.recipientId
+			}
+
+			assert.Equal(t, testCase.expected, notification.GetChannelName(testCase.nameFormat, recipientId))
+		})
+	}
+}
+
+func TestPostNotificationGetSenderName(t *testing.T) {
+	th := Setup(t)
+	defer th.TearDown()
+
+	defaultChannel := &model.Channel{Type: model.CHANNEL_OPEN}
+	defaultPost := &model.Post{Props: model.StringInterface{}}
+	sender := &model.User{Id: model.NewId(), Username: "sender", FirstName: "Sender", LastName: "Sender", Nickname: "Sender"}
+
+	overriddenPost := &model.Post{
+		Props: model.StringInterface{
+			"override_username": "Overridden",
+			"from_webhook":      "true",
+		},
+	}
+
+	for name, testCase := range map[string]struct {
+		channel        *model.Channel
+		post           *model.Post
+		nameFormat     string
+		allowOverrides bool
+		expected       string
+	}{
+		"name format unspecified": {
+			expected: sender.Username,
+		},
+		"name format username": {
+			nameFormat: model.SHOW_USERNAME,
+			expected:   sender.Username,
+		},
+		"name format full name": {
+			nameFormat: model.SHOW_FULLNAME,
+			expected:   sender.FirstName + " " + sender.LastName,
+		},
+		"name format nickname": {
+			nameFormat: model.SHOW_NICKNAME_FULLNAME,
+			expected:   sender.Nickname,
+		},
+		"system message": {
+			post:     &model.Post{Type: model.POST_SYSTEM_MESSAGE_PREFIX + "custom"},
+			expected: utils.T("system.message.name"),
+		},
+		"overridden username": {
+			post:           overriddenPost,
+			allowOverrides: true,
+			expected:       overriddenPost.Props["override_username"].(string),
+		},
+		"overridden username, direct channel": {
+			channel:        &model.Channel{Type: model.CHANNEL_DIRECT},
+			post:           overriddenPost,
+			allowOverrides: true,
+			expected:       sender.Username,
+		},
+		"overridden username, overrides disabled": {
+			post:           overriddenPost,
+			allowOverrides: false,
+			expected:       sender.Username,
+		},
+	} {
+		t.Run(name, func(t *testing.T) {
+			channel := defaultChannel
+			if testCase.channel != nil {
+				channel = testCase.channel
+			}
+
+			post := defaultPost
+			if testCase.post != nil {
+				post = testCase.post
+			}
+
+			notification := &postNotification{
+				channel: channel,
+				post:    post,
+				sender:  sender,
+			}
+
+			assert.Equal(t, testCase.expected, notification.GetSenderName(testCase.nameFormat, testCase.allowOverrides))
+		})
+	}
 }

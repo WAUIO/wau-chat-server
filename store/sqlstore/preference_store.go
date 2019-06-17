@@ -61,6 +61,7 @@ func (s SqlPreferenceStore) Save(preferences *model.Preferences) store.StoreChan
 		if err != nil {
 			result.Err = model.NewAppError("SqlPreferenceStore.Save", "store.sql_preference.save.open_transaction.app_error", nil, err.Error(), http.StatusInternalServerError)
 		} else {
+			defer finalizeTransaction(transaction)
 			for _, preference := range *preferences {
 				if upsertResult := s.save(transaction, &preference); upsertResult.Err != nil {
 					*result = upsertResult
@@ -74,10 +75,6 @@ func (s SqlPreferenceStore) Save(preferences *model.Preferences) store.StoreChan
 					result.Err = model.NewAppError("SqlPreferenceStore.Save", "store.sql_preference.save.commit_transaction.app_error", nil, err.Error(), http.StatusInternalServerError)
 				} else {
 					result.Data = len(*preferences)
-				}
-			} else {
-				if err := transaction.Rollback(); err != nil {
-					result.Err = model.NewAppError("SqlPreferenceStore.Save", "store.sql_preference.save.rollback_transaction.app_error", nil, err.Error(), http.StatusInternalServerError)
 				}
 			}
 		}
@@ -128,9 +125,9 @@ func (s SqlPreferenceStore) save(transaction *gorp.Transaction, preference *mode
 		}
 
 		if count == 1 {
-			s.update(transaction, preference)
+			result = s.update(transaction, preference)
 		} else {
-			s.insert(transaction, preference)
+			result = s.insert(transaction, preference)
 		}
 	} else {
 		result.Err = model.NewAppError("SqlPreferenceStore.save", "store.sql_preference.save.missing_driver.app_error", nil, "Failed to update preference because of missing driver", http.StatusNotImplemented)
@@ -166,43 +163,39 @@ func (s SqlPreferenceStore) update(transaction *gorp.Transaction, preference *mo
 	return result
 }
 
-func (s SqlPreferenceStore) Get(userId string, category string, name string) store.StoreChannel {
-	return store.Do(func(result *store.StoreResult) {
-		var preference model.Preference
+func (s SqlPreferenceStore) Get(userId string, category string, name string) (*model.Preference, *model.AppError) {
+	var preference *model.Preference
 
-		if err := s.GetReplica().SelectOne(&preference,
-			`SELECT
-				*
-			FROM
-				Preferences
-			WHERE
-				UserId = :UserId
-				AND Category = :Category
-				AND Name = :Name`, map[string]interface{}{"UserId": userId, "Category": category, "Name": name}); err != nil {
-			result.Err = model.NewAppError("SqlPreferenceStore.Get", "store.sql_preference.get.app_error", nil, err.Error(), http.StatusInternalServerError)
-		} else {
-			result.Data = preference
-		}
-	})
+	if err := s.GetReplica().SelectOne(&preference,
+		`SELECT
+			*
+		FROM
+			Preferences
+		WHERE
+			UserId = :UserId
+			AND Category = :Category
+			AND Name = :Name`, map[string]interface{}{"UserId": userId, "Category": category, "Name": name}); err != nil {
+		return nil, model.NewAppError("SqlPreferenceStore.Get", "store.sql_preference.get.app_error", nil, err.Error(), http.StatusInternalServerError)
+	}
+	return preference, nil
 }
 
-func (s SqlPreferenceStore) GetCategory(userId string, category string) store.StoreChannel {
-	return store.Do(func(result *store.StoreResult) {
-		var preferences model.Preferences
+func (s SqlPreferenceStore) GetCategory(userId string, category string) (model.Preferences, *model.AppError) {
+	var preferences model.Preferences
 
-		if _, err := s.GetReplica().Select(&preferences,
-			`SELECT
+	if _, err := s.GetReplica().Select(&preferences,
+		`SELECT
 				*
 			FROM
 				Preferences
 			WHERE
 				UserId = :UserId
 				AND Category = :Category`, map[string]interface{}{"UserId": userId, "Category": category}); err != nil {
-			result.Err = model.NewAppError("SqlPreferenceStore.GetCategory", "store.sql_preference.get_category.app_error", nil, err.Error(), http.StatusInternalServerError)
-		} else {
-			result.Data = preferences
-		}
-	})
+		return nil, model.NewAppError("SqlPreferenceStore.GetCategory", "store.sql_preference.get_category.app_error", nil, err.Error(), http.StatusInternalServerError)
+	}
+
+	return preferences, nil
+
 }
 
 func (s SqlPreferenceStore) GetAll(userId string) store.StoreChannel {

@@ -15,6 +15,7 @@ type TeamMember struct {
 	UserId        string `json:"user_id"`
 	Roles         string `json:"roles"`
 	DeleteAt      int64  `json:"delete_at"`
+	SchemeGuest   bool   `json:"scheme_guest"`
 	SchemeUser    bool   `json:"scheme_user"`
 	SchemeAdmin   bool   `json:"scheme_admin"`
 	ExplicitRoles string `json:"explicit_roles"`
@@ -24,6 +25,11 @@ type TeamUnread struct {
 	TeamId       string `json:"team_id"`
 	MsgCount     int64  `json:"msg_count"`
 	MentionCount int64  `json:"mention_count"`
+}
+
+type TeamMemberForExport struct {
+	TeamMember
+	TeamName string
 }
 
 func (o *TeamMember) ToJson() string {

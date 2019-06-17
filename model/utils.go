@@ -15,15 +15,13 @@ import (
 	"net/http"
 	"net/mail"
 	"net/url"
-	"reflect"
 	"regexp"
 	"strconv"
 	"strings"
-	"testing"
 	"time"
 	"unicode"
 
-	goi18n "github.com/nicksnyder/go-i18n/i18n"
+	goi18n "github.com/mattermost/go-i18n/i18n"
 	"github.com/pborman/uuid"
 )
 
@@ -37,6 +35,22 @@ const (
 type StringInterface map[string]interface{}
 type StringMap map[string]string
 type StringArray []string
+
+func (sa StringArray) Equals(input StringArray) bool {
+
+	if len(sa) != len(input) {
+		return false
+	}
+
+	for index := range sa {
+
+		if sa[index] != input[index] {
+			return false
+		}
+	}
+
+	return true
+}
 
 var translateFunc goi18n.TranslateFunc = nil
 
@@ -143,26 +157,17 @@ func NewRandomString(length int) string {
 	return b.String()
 }
 
-// GetMillis is a convience method to get milliseconds since epoch.
+// GetMillis is a convenience method to get milliseconds since epoch.
 func GetMillis() int64 {
 	return time.Now().UnixNano() / int64(time.Millisecond)
 }
 
-// GetMillisForTime is a convience method to get milliseconds since epoch for provided Time.
+// GetMillisForTime is a convenience method to get milliseconds since epoch for provided Time.
 func GetMillisForTime(thisTime time.Time) int64 {
 	return thisTime.UnixNano() / int64(time.Millisecond)
 }
 
-// ParseDateFilterToTime is a convience method to get Time from string
-func ParseDateFilterToTime(filterString string) time.Time {
-	resultTime, err := time.Parse("2006-01-02", PadDateStringZeros(filterString))
-	if err != nil {
-		return time.Now()
-	}
-	return resultTime
-}
-
-// PadDateStringZeros is a convience method to pad 2 digit date parts with zeros to meet ISO 8601 format
+// PadDateStringZeros is a convenience method to pad 2 digit date parts with zeros to meet ISO 8601 format
 func PadDateStringZeros(dateString string) string {
 	parts := strings.Split(dateString, "-")
 	for index, part := range parts {
@@ -174,14 +179,14 @@ func PadDateStringZeros(dateString string) string {
 	return dateString
 }
 
-// GetStartOfDayMillis is a convience method to get milliseconds since epoch for provided date's start of day
+// GetStartOfDayMillis is a convenience method to get milliseconds since epoch for provided date's start of day
 func GetStartOfDayMillis(thisTime time.Time, timeZoneOffset int) int64 {
 	localSearchTimeZone := time.FixedZone("Local Search Time Zone", timeZoneOffset)
 	resultTime := time.Date(thisTime.Year(), thisTime.Month(), thisTime.Day(), 0, 0, 0, 0, localSearchTimeZone)
 	return GetMillisForTime(resultTime)
 }
 
-// GetEndOfDayMillis is a convience method to get milliseconds since epoch for provided date's end of day
+// GetEndOfDayMillis is a convenience method to get milliseconds since epoch for provided date's end of day
 func GetEndOfDayMillis(thisTime time.Time, timeZoneOffset int) int64 {
 	localSearchTimeZone := time.FixedZone("Local Search Time Zone", timeZoneOffset)
 	resultTime := time.Date(thisTime.Year(), thisTime.Month(), thisTime.Day(), 23, 59, 59, 999999999, localSearchTimeZone)
@@ -341,6 +346,8 @@ var reservedName = []string{
 	"post",
 	"api",
 	"oauth",
+	"error",
+	"help",
 }
 
 func IsValidChannelIdentifier(s string) bool {
@@ -522,63 +529,6 @@ func IsValidId(value string) bool {
 	return true
 }
 
-// checkNowhereNil checks that the given interface value is not nil, and if a struct, that all of
-// its public fields are also nowhere nil
-func checkNowhereNil(t *testing.T, name string, value interface{}) bool {
-	if value == nil {
-		return false
-	}
-
-	v := reflect.ValueOf(value)
-	switch v.Type().Kind() {
-	case reflect.Ptr:
-		if v.IsNil() {
-			t.Logf("%s was nil", name)
-			return false
-		}
-
-		return checkNowhereNil(t, fmt.Sprintf("(*%s)", name), v.Elem().Interface())
-
-	case reflect.Map:
-		if v.IsNil() {
-			t.Logf("%s was nil", name)
-			return false
-		}
-
-		// Don't check map values
-		return true
-
-	case reflect.Struct:
-		nowhereNil := true
-		for i := 0; i < v.NumField(); i++ {
-			f := v.Field(i)
-			// Ignore unexported fields
-			if v.Type().Field(i).PkgPath != "" {
-				continue
-			}
-
-			nowhereNil = nowhereNil && checkNowhereNil(t, fmt.Sprintf("%s.%s", name, v.Type().Field(i).Name), f.Interface())
-		}
-
-		return nowhereNil
-
-	case reflect.Array:
-		fallthrough
-	case reflect.Chan:
-		fallthrough
-	case reflect.Func:
-		fallthrough
-	case reflect.Interface:
-		fallthrough
-	case reflect.UnsafePointer:
-		t.Logf("unhandled field %s, type: %s", name, v.Type().Kind())
-		return false
-
-	default:
-		return true
-	}
-}
-
 // Copied from https://golang.org/src/net/dnsclient.go#L119
 func IsDomainName(s string) bool {
 	// See RFC 1035, RFC 3696.
@@ -631,4 +581,27 @@ func IsDomainName(s string) bool {
 	}
 
 	return ok
+}
+
+func RemoveDuplicateStrings(in []string) []string {
+	out := []string{}
+	seen := make(map[string]bool, len(in))
+
+	for _, item := range in {
+		if !seen[item] {
+			out = append(out, item)
+
+			seen[item] = true
+		}
+	}
+
+	return out
+}
+
+func GetPreferredTimezone(timezone StringMap) string {
+	if timezone["useAutomaticTimezone"] == "true" {
+		return timezone["automaticTimezone"]
+	}
+
+	return timezone["manualTimezone"]
 }

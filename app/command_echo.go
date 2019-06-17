@@ -9,9 +9,9 @@ import (
 	"strings"
 	"time"
 
+	goi18n "github.com/mattermost/go-i18n/i18n"
 	"github.com/mattermost/mattermost-server/mlog"
 	"github.com/mattermost/mattermost-server/model"
-	goi18n "github.com/nicksnyder/go-i18n/i18n"
 )
 
 var echoSem chan bool
@@ -78,7 +78,7 @@ func (me *EchoProvider) DoCommand(a *App, args *model.CommandArgs, message strin
 	}
 
 	echoSem <- true
-	a.Go(func() {
+	a.Srv.Go(func() {
 		defer func() { <-echoSem }()
 		post := &model.Post{}
 		post.ChannelId = args.ChannelId
