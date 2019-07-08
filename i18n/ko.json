@@ -93,7 +93,7 @@
   },
   {
     "id": "api.admin.test_email.body",
-    "translation": "사용자의 Mattermost 이메일이 잘 설정되었습니다!"
+    "translation": "사용자의 WAU Chat 이메일이 잘 설정되었습니다!"
   },
   {
     "id": "api.admin.test_email.missing_server",
@@ -105,7 +105,7 @@
   },
   {
     "id": "api.admin.test_email.subject",
-    "translation": "Mattermost - 이메일 설정 테스트중"
+    "translation": "WAU Chat - 이메일 설정 테스트중"
   },
   {
     "id": "api.admin.test_s3.missing_s3_bucket",
@@ -405,7 +405,7 @@
   },
   {
     "id": "api.command.invite_people.desc",
-    "translation": "여러분의 Mattermost 팀에게 초대 메일을 보내기"
+    "translation": "여러분의 WAU Chat 팀에게 초대 메일을 보내기"
   },
   {
     "id": "api.command.invite_people.email_invitations_off",
@@ -688,7 +688,7 @@
   },
   {
     "id": "api.command_help.desc",
-    "translation": "Mattermost 도움말 페이지 열기"
+    "translation": "WAU Chat 도움말 페이지 열기"
   },
   {
     "id": "api.command_help.name",
@@ -796,7 +796,7 @@
   },
   {
     "id": "api.command_logout.desc",
-    "translation": "Mattermost 로그아웃"
+    "translation": "WAU Chat 로그아웃"
   },
   {
     "id": "api.command_logout.fail_message",
@@ -1732,7 +1732,7 @@
   },
   {
     "id": "api.slackimport.slack_add_channels.merge",
-    "translation": "Slack채널 {{.DisplayName}}이(가) 이미 Mattermost채널에 활성상태로 존재합니다. 두 채널은 통합되었습니다.\r\n"
+    "translation": "Slack채널 {{.DisplayName}}이(가) 이미 WAU Chat채널에 활성상태로 존재합니다. 두 채널은 통합되었습니다.\r\n"
   },
   {
     "id": "api.slackimport.slack_add_users.created",
@@ -1744,11 +1744,11 @@
   },
   {
     "id": "api.slackimport.slack_add_users.merge_existing",
-    "translation": "이메일 {{.Email}}, 사용자명 {{.Username}}을 통해 Slack유저와 Mattermost에 존재하는 유저를 통합하였습니다.\r\n"
+    "translation": "이메일 {{.Email}}, 사용자명 {{.Username}}을 통해 Slack유저와 WAU Chat에 존재하는 유저를 통합하였습니다.\r\n"
   },
   {
     "id": "api.slackimport.slack_add_users.merge_existing_failed",
-    "translation": "이메일 {{.Email}}, 사용자명 {{.Username}}을 통해 Slack유저와 Mattermost에 존재하는 유저를 통합하였습니다, 하지만 팀에는 추가하지 못했습니다.\r\n"
+    "translation": "이메일 {{.Email}}, 사용자명 {{.Username}}을 통해 Slack유저와 WAU Chat에 존재하는 유저를 통합하였습니다, 하지만 팀에는 추가하지 못했습니다.\r\n"
   },
   {
     "id": "api.slackimport.slack_add_users.missing_email_address",
@@ -2056,7 +2056,7 @@
   },
   {
     "id": "api.templates.invite_body.extra_info",
-    "translation": "Mattermost에서는 PC와 모바일간에 메시지와 파일들을 공유할 수 있으며, 검색과 보관 기능을 사용할 수 있습니다. [[{{.TeamDisplayName}}]] 에 참여한 후에는, 새로운 팀에 들어갈 수 있으며 이러한 기능들을 언제든지 사용할 수 있습니다. 웹 주소:"
+    "translation": "WAU Chat에서는 PC와 모바일간에 메시지와 파일들을 공유할 수 있으며, 검색과 보관 기능을 사용할 수 있습니다. [[{{.TeamDisplayName}}]] 에 참여한 후에는, 새로운 팀에 들어갈 수 있으며 이러한 기능들을 언제든지 사용할 수 있습니다. 웹 주소:"
   },
   {
     "id": "api.templates.invite_body.info",
@@ -2200,7 +2200,7 @@
   },
   {
     "id": "api.templates.welcome_body.info3",
-    "translation": "Mattermost lets you share messages and files from your PC or phone, with instant search and archiving."
+    "translation": "WAU Chat lets you share messages and files from your PC or phone, with instant search and archiving."
   },
   {
     "id": "api.templates.welcome_body.title",
@@ -3736,7 +3736,7 @@
   },
   {
     "id": "ent.ldap.do_login.user_filtered.app_error",
-    "translation": "AD/LDAP 계정이 Mattermost 서버를 사용하기 위한 권한이 없습니다. 시스템 관리자에게 AD/LDAP 사용자 필터 확인을 문의해보세요."
+    "translation": "AD/LDAP 계정이 WAU Chat 서버를 사용하기 위한 권한이 없습니다. 시스템 관리자에게 AD/LDAP 사용자 필터 확인을 문의해보세요."
   },
   {
     "id": "ent.ldap.do_login.user_not_registered.app_error",
@@ -3760,7 +3760,7 @@
   },
   {
     "id": "ent.ldap.syncronize.search_failure.app_error",
-    "translation": "Failed to search users in AD/LDAP. Test if the Mattermost server can connect to your AD/LDAP server and try again."
+    "translation": "Failed to search users in AD/LDAP. Test if the WAU Chat server can connect to your AD/LDAP server and try again."
   },
   {
     "id": "ent.ldap.syncronize.search_failure_size_exceeded.app_error",
@@ -3860,7 +3860,7 @@
   },
   {
     "id": "ent.migration.migratetosaml.username_already_used_by_other_user",
-    "translation": "Username already used by another Mattermost user."
+    "translation": "Username already used by another WAU Chat user."
   },
   {
     "id": "ent.saml.attribute.app_error",
@@ -3976,7 +3976,7 @@
   },
   {
     "id": "mattermost.bulletin.subject",
-    "translation": "Mattermost Security Bulletin"
+    "translation": "WAU Chat Security Bulletin"
   },
   {
     "id": "mfa.activate.authenticate.app_error",
@@ -5244,7 +5244,7 @@
   },
   {
     "id": "oauth.gitlab.tos.error",
-    "translation": "GitLab's Terms of Service have updated. Please go to gitlab.com to accept them and then try logging into Mattermost again."
+    "translation": "GitLab's Terms of Service have updated. Please go to gitlab.com to accept them and then try logging into WAU Chat again."
   },
   {
     "id": "plugin.api.get_users_in_channel",

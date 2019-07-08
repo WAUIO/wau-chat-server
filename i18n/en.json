@@ -93,7 +93,7 @@
   },
   {
     "id": "api.admin.test_email.body",
-    "translation": "It appears your Mattermost email is setup correctly!"
+    "translation": "It appears your WAU Chat email is setup correctly!"
   },
   {
     "id": "api.admin.test_email.missing_server",
@@ -105,7 +105,7 @@
   },
   {
     "id": "api.admin.test_email.subject",
-    "translation": "Mattermost - Testing Email Settings"
+    "translation": "WAU Chat - Testing Email Settings"
   },
   {
     "id": "api.admin.test_s3.missing_s3_bucket",
@@ -405,7 +405,7 @@
   },
   {
     "id": "api.command.invite_people.desc",
-    "translation": "Send an email invite to your Mattermost team"
+    "translation": "Send an email invite to your WAU Chat team"
   },
   {
     "id": "api.command.invite_people.email_invitations_off",
@@ -688,7 +688,7 @@
   },
   {
     "id": "api.command_help.desc",
-    "translation": "Open the Mattermost help page"
+    "translation": "Open the WAU Chat help page"
   },
   {
     "id": "api.command_help.name",
@@ -796,7 +796,7 @@
   },
   {
     "id": "api.command_logout.desc",
-    "translation": "Logout of Mattermost"
+    "translation": "Logout of WAU Chat"
   },
   {
     "id": "api.command_logout.fail_message",
@@ -1732,7 +1732,7 @@
   },
   {
     "id": "api.slackimport.slack_add_channels.merge",
-    "translation": "The Slack channel {{.DisplayName}} already exists as an active Mattermost channel. Both channels have been merged.\r\n"
+    "translation": "The Slack channel {{.DisplayName}} already exists as an active WAU Chat channel. Both channels have been merged.\r\n"
   },
   {
     "id": "api.slackimport.slack_add_users.created",
@@ -1744,11 +1744,11 @@
   },
   {
     "id": "api.slackimport.slack_add_users.merge_existing",
-    "translation": "Slack user merged with an existing Mattermost user with matching email {{.Email}} and username {{.Username}}.\r\n"
+    "translation": "Slack user merged with an existing WAU Chat user with matching email {{.Email}} and username {{.Username}}.\r\n"
   },
   {
     "id": "api.slackimport.slack_add_users.merge_existing_failed",
-    "translation": "Slack user merged with an existing Mattermost user with matching email {{.Email}} and username {{.Username}}, but was unable to add the user to their team.\r\n"
+    "translation": "Slack user merged with an existing WAU Chat user with matching email {{.Email}} and username {{.Username}}, but was unable to add the user to their team.\r\n"
   },
   {
     "id": "api.slackimport.slack_add_users.missing_email_address",
@@ -1760,7 +1760,7 @@
   },
   {
     "id": "api.slackimport.slack_import.log",
-    "translation": "Mattermost Slack Import Log\r\n"
+    "translation": "WAU Chat Slack Import Log\r\n"
   },
   {
     "id": "api.slackimport.slack_import.note1",
@@ -2056,7 +2056,7 @@
   },
   {
     "id": "api.templates.invite_body.extra_info",
-    "translation": "Mattermost lets you share messages and files from your PC or phone, with instant search and archiving. After you’ve joined [[{{.TeamDisplayName}}]], you can sign-in to your new team and access these features anytime from the web address:"
+    "translation": "WAU Chat lets you share messages and files from your PC or phone, with instant search and archiving. After you’ve joined [[{{.TeamDisplayName}}]], you can sign-in to your new team and access these features anytime from the web address:"
   },
   {
     "id": "api.templates.invite_body.info",
@@ -2200,7 +2200,7 @@
   },
   {
     "id": "api.templates.welcome_body.info3",
-    "translation": "Mattermost lets you share messages and files from your PC or phone, with instant search and archiving."
+    "translation": "WAU Chat lets you share messages and files from your PC or phone, with instant search and archiving."
   },
   {
     "id": "api.templates.welcome_body.title",
@@ -3736,7 +3736,7 @@
   },
   {
     "id": "ent.ldap.do_login.user_filtered.app_error",
-    "translation": "Your AD/LDAP account does not have permission to use this Mattermost server. Please ask your System Administrator to check the AD/LDAP user filter."
+    "translation": "Your AD/LDAP account does not have permission to use this WAU Chat server. Please ask your System Administrator to check the AD/LDAP user filter."
   },
   {
     "id": "ent.ldap.do_login.user_not_registered.app_error",
@@ -3760,7 +3760,7 @@
   },
   {
     "id": "ent.ldap.syncronize.search_failure.app_error",
-    "translation": "Failed to search users in AD/LDAP. Test if the Mattermost server can connect to your AD/LDAP server and try again."
+    "translation": "Failed to search users in AD/LDAP. Test if the WAU Chat server can connect to your AD/LDAP server and try again."
   },
   {
     "id": "ent.ldap.syncronize.search_failure_size_exceeded.app_error",
@@ -3860,7 +3860,7 @@
   },
   {
     "id": "ent.migration.migratetosaml.username_already_used_by_other_user",
-    "translation": "Username already used by another Mattermost user."
+    "translation": "Username already used by another WAU Chat user."
   },
   {
     "id": "ent.saml.attribute.app_error",
@@ -3976,7 +3976,7 @@
   },
   {
     "id": "mattermost.bulletin.subject",
-    "translation": "Mattermost Security Bulletin"
+    "translation": "WAU Chat Security Bulletin"
   },
   {
     "id": "mfa.activate.authenticate.app_error",
@@ -5244,7 +5244,7 @@
   },
   {
     "id": "oauth.gitlab.tos.error",
-    "translation": "GitLab's Terms of Service have updated. Please go to gitlab.com to accept them and then try logging into Mattermost again."
+    "translation": "GitLab's Terms of Service have updated. Please go to gitlab.com to accept them and then try logging into WAU Chat again."
   },
   {
     "id": "plugin.api.get_users_in_channel",
