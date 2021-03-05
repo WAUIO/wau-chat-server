@@ -1,5 +1,5 @@
-// Copyright (c) 2016-present Mattermost, Inc. All Rights Reserved.
-// See License.txt for license information.
+// Copyright (c) 2015-present Mattermost, Inc. All Rights Reserved.
+// See LICENSE.txt for license information.
 
 package commands
 
@@ -7,11 +7,11 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/mattermost/mattermost-server/app"
-	"github.com/mattermost/mattermost-server/model"
+	"github.com/mattermost/mattermost-server/v5/app"
+	"github.com/mattermost/mattermost-server/v5/model"
 )
 
-const CHANNEL_ARG_SEPARATOR = ":"
+const ChannelArgSeparator = ":"
 
 func getChannelsFromChannelArgs(a *app.App, channelArgs []string) []*model.Channel {
 	channels := make([]*model.Channel, 0, len(channelArgs))
@@ -23,7 +23,7 @@ func getChannelsFromChannelArgs(a *app.App, channelArgs []string) []*model.Chann
 }
 
 func parseChannelArg(channelArg string) (string, string) {
-	result := strings.SplitN(channelArg, CHANNEL_ARG_SEPARATOR, 2)
+	result := strings.SplitN(channelArg, ChannelArgSeparator, 2)
 	if len(result) == 1 {
 		return "", channelArg
 	}
@@ -43,15 +43,15 @@ func getChannelFromChannelArg(a *app.App, channelArg string) *model.Channel {
 			return nil
 		}
 
-		if result := <-a.Srv.Store.Channel().GetByNameIncludeDeleted(team.Id, channelPart, true); result.Err == nil {
-			channel = result.Data.(*model.Channel)
+		if result, err := a.Srv().Store.Channel().GetByNameIncludeDeleted(team.Id, channelPart, true); err == nil {
+			channel = result
 		} else {
-			fmt.Println(result.Err.Error())
+			fmt.Println(err.Error())
 		}
 	}
 
 	if channel == nil {
-		if ch, errCh := a.Srv.Store.Channel().Get(channelPart, true); errCh == nil {
+		if ch, errCh := a.Srv().Store.Channel().Get(channelPart, true); errCh == nil {
 			channel = ch
 		}
 	}

@@ -1,16 +1,24 @@
-// Copyright (c) 2019-present Mattermost, Inc. All Rights Reserved.
-// See License.txt for license information.
+// Copyright (c) 2015-present Mattermost, Inc. All Rights Reserved.
+// See LICENSE.txt for license information.
 
 package commands
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
+	"os"
 	"reflect"
+	"sort"
 	"strings"
 
-	"github.com/mattermost/mattermost-server/mlog"
+	"github.com/spf13/cobra"
+
+	"github.com/mattermost/mattermost-server/v5/mlog"
+	"github.com/mattermost/mattermost-server/v5/model"
 )
+
+const CustomDefaultsEnvVar = "MM_CUSTOM_DEFAULTS_PATH"
 
 // prettyPrintStruct will return a prettyPrint version of a given struct
 func prettyPrintStruct(t interface{}) string {
@@ -21,7 +29,7 @@ func prettyPrintStruct(t interface{}) string {
 func structToMap(t interface{}) map[string]interface{} {
 	defer func() {
 		if r := recover(); r != nil {
-			mlog.Error(fmt.Sprintf("Panicked in structToMap. This should never happen. %v", r))
+			mlog.Warn("Panicked in structToMap. This should never happen.", mlog.Any("recover", r))
 		}
 	}()
 
@@ -46,7 +54,7 @@ func structToMap(t interface{}) map[string]interface{} {
 
 			if indirectType.Kind() == reflect.Struct {
 				value = structToMap(indirectType.Interface())
-			} else {
+			} else if indirectType.Kind() != reflect.Invalid {
 				value = indirectType.Interface()
 			}
 		default:
@@ -62,14 +70,25 @@ func structToMap(t interface{}) map[string]interface{} {
 // prettyPrintMap will return a prettyPrint version of a given map
 func prettyPrintMap(configMap map[string]interface{}) string {
 	value := reflect.ValueOf(configMap)
-	return printMap(value, 0)
+	return printStringMap(value, 0)
 }
 
-// printMap takes a reflect.Value and prints it out, recursively if it's a map with the given tab settings
-func printMap(value reflect.Value, tabVal int) string {
+// printStringMap takes a reflect.Value and prints it out alphabetically based on key values, which must be strings.
+// This is done recursively if it's a map, and uses the given tab settings.
+func printStringMap(value reflect.Value, tabVal int) string {
 	out := &bytes.Buffer{}
 
-	for _, key := range value.MapKeys() {
+	var sortedKeys []string
+	stringToKeyMap := make(map[string]reflect.Value)
+	for _, k := range value.MapKeys() {
+		sortedKeys = append(sortedKeys, k.String())
+		stringToKeyMap[k.String()] = k
+	}
+
+	sort.Strings(sortedKeys)
+
+	for _, keyString := range sortedKeys {
+		key := stringToKeyMap[keyString]
 		val := value.MapIndex(key)
 		if newVal, ok := val.Interface().(map[string]interface{}); !ok {
 			fmt.Fprintf(out, "%s", strings.Repeat("\t", tabVal))
@@ -79,11 +98,48 @@ func printMap(value reflect.Value, tabVal int) string {
 			fmt.Fprintf(out, "%v:\n", key.Interface())
 			// going one level in, increase the tab
 			tabVal++
-			fmt.Fprintf(out, "%s", printMap(reflect.ValueOf(newVal), tabVal))
+			fmt.Fprintf(out, "%s", printStringMap(reflect.ValueOf(newVal), tabVal))
 			// coming back one level, decrease the tab
 			tabVal--
 		}
 	}
 
 	return out.String()
+}
+
+func getConfigDSN(command *cobra.Command, env map[string]string) string {
+	configDSN, _ := command.Flags().GetString("config")
+
+	// Config not supplied in flag, check env
+	if configDSN == "" {
+		configDSN = env["MM_CONFIG"]
+	}
+
+	// Config not supplied in env or flag use default
+	if configDSN == "" {
+		configDSN = "config.json"
+	}
+
+	return configDSN
+}
+
+func loadCustomDefaults() (*model.Config, error) {
+	customDefaultsPath := os.Getenv(CustomDefaultsEnvVar)
+	if customDefaultsPath == "" {
+		return nil, nil
+	}
+
+	file, err := os.Open(customDefaultsPath)
+	if err != nil {
+		return nil, fmt.Errorf("unable to open custom defaults file at %q: %w", customDefaultsPath, err)
+	}
+	defer file.Close()
+
+	var customDefaults *model.Config
+	err = json.NewDecoder(file).Decode(&customDefaults)
+	if err != nil {
+		return nil, fmt.Errorf("unable to decode custom defaults configuration: %w", err)
+	}
+
+	return customDefaults, nil
 }

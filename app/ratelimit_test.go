@@ -1,5 +1,5 @@
-// Copyright (c) 2018-present Mattermost, Inc. All Rights Reserved.
-// See License.txt for license information.
+// Copyright (c) 2015-present Mattermost, Inc. All Rights Reserved.
+// See LICENSE.txt for license information.
 
 package app
 
@@ -9,8 +9,9 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/mattermost/mattermost-server/model"
 	"github.com/stretchr/testify/require"
+
+	"github.com/mattermost/mattermost-server/v5/model"
 )
 
 func genRateLimitSettings(useAuth, useIP bool, header string) *model.RateLimitSettings {
@@ -93,7 +94,6 @@ func TestGenerateKey_TrustedHeader(t *testing.T) {
 	req := httptest.NewRequest("GET", "/", nil)
 	req.RemoteAddr = "10.10.10.5:80"
 	req.Header.Set("X-Forwarded-For", "10.6.3.1, 10.5.1.2")
-
 
 	rateLimiter, _ := NewRateLimiter(genRateLimitSettings(true, true, ""), []string{"X-Forwarded-For"})
 	key := rateLimiter.GenerateKey(req)
